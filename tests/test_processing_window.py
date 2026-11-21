@@ -3,9 +3,10 @@
 import pytest
 
 import flypage.ui  # noqa: F401
-from gi.repository import Adw, GLib, Gtk
+from gi.repository import Adw, Gdk, GLib, Gtk
 
-if not Gtk.init_check():
+# init_check() can return True with no display at all: also check there is one.
+if not Gtk.init_check() or Gdk.Display.get_default() is None:
     pytest.skip("no display available", allow_module_level=True)
 Adw.init()
 

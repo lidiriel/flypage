@@ -123,7 +123,7 @@ sudo apt install meson gettext desktop-file-utils appstream
 # to run
 sudo apt install python3 python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1 \
     gir1.2-poppler-0.18 python3-xlib python3-pikepdf python3-pil python3-tomli-w \
-    img2pdf ocrmypdf tesseract-ocr tesseract-ocr-eng tesseract-ocr-fra udisks2 libnotify-bin
+    img2pdf ocrmypdf tesseract-ocr tesseract-ocr-eng tesseract-ocr-fra udisks2
 
 # to run the tests
 sudo apt install python3-pytest
@@ -146,7 +146,19 @@ the system menu, and an autostart entry that runs `flypage daemon` at
 every login. Log out and back in (or run `flypage daemon`) and plug in the
 scanner.
 
-A Debian package is planned (PLAN.md, milestone 9).
+### Debian package
+
+```sh
+sudo apt install dpkg-dev debhelper dh-python lintian
+dpkg-checkbuilddeps                 # lists any missing build dependency
+dpkg-buildpackage -us -uc -b        # builds ../flypage_<version>_all.deb
+lintian ../flypage_*.changes
+sudo apt install ../flypage_*_all.deb
+```
+
+The package is native (`3.0 (native)`): the version in `debian/changelog`
+must match `VERSION`. The tests run during the build, without a display
+(the window tests are skipped); `DEB_BUILD_OPTIONS=nocheck` skips them.
 
 ## Development
 

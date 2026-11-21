@@ -1,0 +1,56 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: flypage
+
+Files: *
+Copyright: 2026 ludovic <ludovic@scilink.net>
+License: GPL-3+
+
+Files: flypage/ui/icons/drag-document.svg
+Copyright: 2016-2017 Papirus Development Team
+           2026 ludovic <ludovic@scilink.net>
+License: GPL-3
+Comment: The document shape comes from "documentation.svg" in the Papirus
+ icon theme, https://github.com/PapirusDevelopmentTeam/papirus-icon-theme
+
+Files: flypage/ui/icons/hicolor/symbolic/apps/*
+Copyright: GNOME Project
+License: LGPL-3 or CC-BY-SA-3.0
+Comment: Adwaita icon theme symbolic icons, shipped as fallbacks for icon
+ themes that lack them. https://gitlab.gnome.org/GNOME/adwaita-icon-theme
+
+License: GPL-3+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ version 3 can be found in "/usr/share/common-licenses/GPL-3".
+
+License: GPL-3
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License version 3 as
+ published by the Free Software Foundation.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ version 3 can be found in "/usr/share/common-licenses/GPL-3".
+
+License: LGPL-3
+ This library is free software; you can redistribute it and/or modify it
+ under the terms of the GNU Lesser General Public License version 3 as
+ published by the Free Software Foundation.
+ .
+ On Debian systems, the complete text of the GNU Lesser General Public
+ License version 3 can be found in "/usr/share/common-licenses/LGPL-3".
+
+License: CC-BY-SA-3.0
+ Creative Commons Attribution-ShareAlike 3.0 Unported.
+ You are free to share and adapt the work, provided you give appropriate
+ credit and distribute your contributions under the same license.
+ The full legal code is at
+ https://creativecommons.org/licenses/by-sa/3.0/legalcode

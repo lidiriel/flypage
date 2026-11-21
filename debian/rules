@@ -1,0 +1,13 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --buildsystem=meson
+
+# dh_python3 byte-compiles at install time (postinst), not at build time.
+override_dh_auto_configure:
+	dh_auto_configure -- -Dpython.bytecompile=-1
+
+# The window tests open real windows when a display is reachable: never do
+# that during a package build.
+override_dh_auto_test:
+	env -u DISPLAY -u WAYLAND_DISPLAY dh_auto_test

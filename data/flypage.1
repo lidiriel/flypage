@@ -1,0 +1,71 @@
+.TH FLYPAGE 1 "2026-11-21" "flypage 0.1.0" "User Commands"
+.SH NAME
+flypage \- import documents from a scanner's memory and turn them into searchable PDFs
+.SH SYNOPSIS
+.B flypage
+.RB [ \-v ]
+.I COMMAND
+.RI [ ARGS ]
+.br
+.B flypage \-\-version
+.SH DESCRIPTION
+.B flypage
+detects a scanner with internal memory (for example an IRIScan Book) when it
+is plugged in, copies its files, lets the user sort them into named folders,
+and produces PDF files with an invisible OCR text layer (Tesseract, through
+ocrmypdf).
+.PP
+PNG, JPEG and PDF files are accepted. The settings are stored in
+.IR ~/.config/flypage/config.toml .
+.SH COMMANDS
+.TP
+.B settings
+Open the settings window: scanner profiles, destination folders, OCR
+languages, file name template and interface language.
+.TP
+.B daemon
+Watch for configured scanners being plugged in. On a match, copy their files
+and open the processing window. It is started at login by the
+.I io.github.flypage.Daemon.desktop
+autostart entry.
+.TP
+.BI "sort " DIRECTORY " \fR[\fB\-\-keep\-originals\fR]"
+Open the processing window on the files of a folder. By default a file is
+deleted once its PDF is created;
+.B \-\-keep\-originals
+keeps it.
+.TP
+.BI "import\-window " STAGING
+Open the processing window on a folder of files imported by the daemon.
+Used internally by
+.BR "flypage daemon" .
+.TP
+.BI "process \-\-dest " DIR " \fR[\fB\-\-merge\fR] " FILE ...
+Convert files to searchable PDFs in
+.I DIR
+without opening a window.
+.B \-\-merge
+makes one PDF from all files, in the order given.
+.SH OPTIONS
+.TP
+.BR \-v ", " \-\-verbose
+Show debug messages.
+.TP
+.B \-\-version
+Show the version and exit.
+.TP
+.BR \-h ", " \-\-help
+Show a help message and exit.
+.SH FILES
+.TP
+.I ~/.config/flypage/config.toml
+User settings.
+.TP
+.I ~/.cache/flypage/
+Imported files waiting to be processed, and thumbnails.
+.TP
+.I ~/.local/state/flypage/pending-deletions.json
+Deletions to do on a scanner the next time it is plugged in.
+.SH SEE ALSO
+.BR ocrmypdf (1),
+.BR tesseract (1)
