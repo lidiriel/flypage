@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.flypage</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Flypage</name>
+  <summary>Turn the scans of a scanner with memory into searchable PDFs</summary>
+  <description>
+    <p>
+      Plug in a scanner with internal memory, such as an IRIScan Book, and
+      Flypage copies its scans and opens a window where you sort them: drag
+      them onto a folder and they become PDFs with an invisible text layer,
+      so you can search and copy their text.
+    </p>
+    <ul>
+      <li>PNG, JPEG and PDF scans</li>
+      <li>Several pages merged into one PDF with Chain</li>
+      <li>File names from a template with dates and numbers</li>
+      <li>OCR with Tesseract, in the languages of your choice</li>
+      <li>Scans deleted from the scanner once converted, if you want</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.flypage.Settings.desktop</launchable>
+  <developer id="io.github.flypage">
+    <name translate="no">Flypage developers</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <provides>
+    <binary>flypage</binary>
+  </provides>
+  <releases>
+    <release version="0.1.0" date="2026-11-18"/>
+  </releases>
+</component>

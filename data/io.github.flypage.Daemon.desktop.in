@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Flypage Scanner Watcher
+Comment=Imports documents when a scanner with memory is plugged in
+Exec=flypage daemon
+Icon=io.github.flypage
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

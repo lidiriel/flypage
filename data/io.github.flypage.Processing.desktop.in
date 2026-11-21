@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Flypage
+Comment=Sort scans into folders and make them searchable PDFs
+Exec=flypage sort %f
+Icon=io.github.flypage
+Terminal=false
+NoDisplay=true
+Categories=Graphics;Scanning;OCR;

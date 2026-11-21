@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Flypage
+GenericName=Scan Import
+Comment=Turn the scans of a scanner with memory into searchable PDFs
+# Translators: search terms, separated by semicolons
+Keywords=scan;scanner;OCR;PDF;IRIScan;
+Exec=flypage settings
+Icon=io.github.flypage
+Terminal=false
+Categories=Graphics;Scanning;OCR;
+StartupNotify=true

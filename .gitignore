@@ -1,0 +1,4 @@
+/builddir/
+/_build/
+__pycache__/
+*.mo

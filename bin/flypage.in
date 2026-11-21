@@ -1,0 +1,9 @@
+#!@PYTHON@
+import sys
+
+# Lets a non-/usr prefix (e.g. /usr/local or a test prefix) find the package.
+sys.path.insert(1, '@PYTHONDIR@')
+
+from flypage.__main__ import main
+
+sys.exit(main())

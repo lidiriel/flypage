@@ -1,0 +1,828 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the flypage package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: flypage\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-21 17:40+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: data/io.github.flypage.Daemon.desktop.in:3
+msgid "Flypage Scanner Watcher"
+msgstr ""
+
+#: data/io.github.flypage.Daemon.desktop.in:4
+msgid "Imports documents when a scanner with memory is plugged in"
+msgstr ""
+
+#: data/io.github.flypage.Processing.desktop.in:3
+#: data/io.github.flypage.Settings.desktop.in:3
+#: data/io.github.flypage.metainfo.xml.in:6 flypage/ui/processing_window.py:109
+msgid "Flypage"
+msgstr ""
+
+#: data/io.github.flypage.Processing.desktop.in:4
+msgid "Sort scans into folders and make them searchable PDFs"
+msgstr ""
+
+#: data/io.github.flypage.Settings.desktop.in:4
+msgid "Scan Import"
+msgstr ""
+
+#: data/io.github.flypage.Settings.desktop.in:5
+#: data/io.github.flypage.metainfo.xml.in:7
+msgid "Turn the scans of a scanner with memory into searchable PDFs"
+msgstr ""
+
+#. Translators: search terms, separated by semicolons
+#: data/io.github.flypage.Settings.desktop.in:7
+msgid "scan;scanner;OCR;PDF;IRIScan;"
+msgstr ""
+
+#: data/io.github.flypage.metainfo.xml.in:9
+msgid ""
+"Plug in a scanner with internal memory, such as an IRIScan Book, and Flypage "
+"copies its scans and opens a window where you sort them: drag them onto a "
+"folder and they become PDFs with an invisible text layer, so you can search "
+"and copy their text."
+msgstr ""
+
+#: data/io.github.flypage.metainfo.xml.in:16
+msgid "PNG, JPEG and PDF scans"
+msgstr ""
+
+#: data/io.github.flypage.metainfo.xml.in:17
+msgid "Several pages merged into one PDF with Chain"
+msgstr ""
+
+#: data/io.github.flypage.metainfo.xml.in:18
+msgid "File names from a template with dates and numbers"
+msgstr ""
+
+#: data/io.github.flypage.metainfo.xml.in:19
+msgid "OCR with Tesseract, in the languages of your choice"
+msgstr ""
+
+#: data/io.github.flypage.metainfo.xml.in:20
+msgid "Scans deleted from the scanner once converted, if you want"
+msgstr ""
+
+#: flypage/__main__.py:14
+msgid ""
+"Import documents from a scanner's memory and turn them into searchable PDFs."
+msgstr ""
+
+#: flypage/__main__.py:17
+msgid "show debug messages"
+msgstr ""
+
+#: flypage/__main__.py:19
+msgid "COMMAND"
+msgstr ""
+
+#: flypage/__main__.py:20
+msgid "open the settings window"
+msgstr ""
+
+#: flypage/__main__.py:21
+msgid "watch for scanners being plugged in"
+msgstr ""
+
+#: flypage/__main__.py:23
+msgid "open the processing window on a folder of files"
+msgstr ""
+
+#: flypage/__main__.py:24
+msgid "folder containing the files to sort"
+msgstr ""
+
+#: flypage/__main__.py:28
+msgid "keep the files once their PDF is created (by default they are deleted)"
+msgstr ""
+
+#: flypage/__main__.py:31
+msgid "open the processing window on files imported by the daemon"
+msgstr ""
+
+#: flypage/__main__.py:32
+msgid "import folder created by the daemon"
+msgstr ""
+
+#: flypage/__main__.py:34
+msgid "convert files to searchable PDFs without a window"
+msgstr ""
+
+#: flypage/__main__.py:35
+msgid "FILE"
+msgstr ""
+
+#: flypage/__main__.py:35
+msgid "PNG, JPEG or PDF file"
+msgstr ""
+
+#: flypage/__main__.py:36
+msgid "DIR"
+msgstr ""
+
+#: flypage/__main__.py:36
+msgid "output folder"
+msgstr ""
+
+#: flypage/__main__.py:37
+msgid "merge all files into one PDF"
+msgstr ""
+
+#: flypage/__main__.py:75
+#, python-brace-format
+msgid "The '{command}' command is not implemented yet."
+msgstr ""
+
+#: flypage/cli.py:38
+#, python-brace-format
+msgid "file not found: {files}"
+msgstr ""
+
+#: flypage/cli.py:58 flypage/ui/processing_window.py:289
+#, python-brace-format
+msgid "OCR {done} / {total} pages"
+msgstr ""
+
+#: flypage/cli.py:82
+msgid "cancelling…"
+msgstr ""
+
+#: flypage/cli.py:97
+#, python-brace-format
+msgid "not an import folder: {folder} ({error})"
+msgstr ""
+
+#: flypage/cli.py:110
+#, python-brace-format
+msgid "not a folder: {folder}"
+msgstr ""
+
+#: flypage/cli.py:114
+#, python-brace-format
+msgid "no PNG, JPEG or PDF file in {folder}"
+msgstr ""
+
+#: flypage/daemon.py:77
+#, python-brace-format
+msgid "Cannot open the scanner memory: {error}"
+msgstr ""
+
+#: flypage/daemon.py:79
+#, python-brace-format
+msgid "{scanner} detected"
+msgstr ""
+
+#: flypage/daemon.py:79
+msgid "Copying its files…"
+msgstr ""
+
+#: flypage/daemon.py:88 flypage/daemon.py:91
+#, python-brace-format
+msgid "Import failed: {error}"
+msgstr ""
+
+#: flypage/daemon.py:101
+#, python-brace-format
+msgid "{scanner}: nothing to import"
+msgstr ""
+
+#: flypage/daemon.py:102
+msgid "The scanner memory has no new file."
+msgstr ""
+
+#: flypage/naming.py:60
+msgid "The file name template is empty."
+msgstr ""
+
+#: flypage/naming.py:62
+msgid "The file name template cannot contain “/”."
+msgstr ""
+
+#: flypage/naming.py:73
+msgid "The template ends with a lone “%”. Write “%%” for a percent sign."
+msgstr ""
+
+#: flypage/naming.py:84
+msgid "Missing “}” after “%{”."
+msgstr ""
+
+#: flypage/naming.py:87
+#, python-brace-format
+msgid "Unknown code “%{{{name}}}”."
+msgstr ""
+
+#: flypage/naming.py:93
+#, python-brace-format
+msgid "Unknown code “%{code}”."
+msgstr ""
+
+#: flypage/naming.py:125
+msgid "The template gives an empty file name."
+msgstr ""
+
+#: flypage/notifications.py:44 flypage/ui/processing_window.py:324
+#, python-brace-format
+msgid "{n} searchable PDF created"
+msgid_plural "{n} searchable PDFs created"
+msgstr[0] ""
+msgstr[1] ""
+
+#: flypage/notifications.py:52 flypage/ui/processing_window.py:332
+#, python-brace-format
+msgid "Open {folder}"
+msgstr ""
+
+#: flypage/ocr/__init__.py:13
+#, python-brace-format
+msgid "Unknown OCR engine “{name}”."
+msgstr ""
+
+#: flypage/ocr/base.py:37
+#, python-brace-format
+msgid "{engine} is not installed."
+msgstr ""
+
+#: flypage/ocr/base.py:41
+#, python-brace-format
+msgid "OCR languages not installed for {engine}: {languages}"
+msgstr ""
+
+#: flypage/ocr/tesseract.py:60
+#, python-brace-format
+msgid "ocrmypdf failed (exit code {code}): {detail}"
+msgstr ""
+
+#: flypage/pipeline.py:170
+msgid "Cancelled"
+msgstr ""
+
+#: flypage/pipeline.py:289
+#, python-brace-format
+msgid "{name}: unsupported file type (expected PNG, JPEG or PDF)"
+msgstr ""
+
+#: flypage/ui/destination_bar.py:35
+msgid "Default"
+msgstr ""
+
+#: flypage/ui/destination_bar.py:39
+#, python-brace-format
+msgid ""
+"{name}: {path}\n"
+"Drop files here, or click to send the selection."
+msgstr ""
+
+#. Bottom row: Cancel + progress.
+#: flypage/ui/dialogs.py:30 flypage/ui/processing_window.py:163
+#: flypage/ui/processing_window.py:254
+msgid "_Cancel"
+msgstr ""
+
+#: flypage/ui/dialogs.py:32
+msgid "_Save"
+msgstr ""
+
+#: flypage/ui/dialogs.py:66
+msgid "Edit Destination"
+msgstr ""
+
+#: flypage/ui/dialogs.py:66
+msgid "New Destination"
+msgstr ""
+
+#: flypage/ui/dialogs.py:71 flypage/ui/dialogs.py:215
+msgid "Name"
+msgstr ""
+
+#: flypage/ui/dialogs.py:75
+msgid "Folder"
+msgstr ""
+
+#: flypage/ui/dialogs.py:76
+msgid "Choose…"
+msgstr ""
+
+#: flypage/ui/dialogs.py:82 flypage/ui/dialogs.py:157
+msgid "Icon"
+msgstr ""
+
+#: flypage/ui/dialogs.py:83
+msgid "Choose an icon"
+msgstr ""
+
+#: flypage/ui/dialogs.py:89
+msgid "File name"
+msgstr ""
+
+#: flypage/ui/dialogs.py:91
+msgid "Own file name template"
+msgstr ""
+
+#: flypage/ui/dialogs.py:92
+msgid "Instead of the template on the Naming page"
+msgstr ""
+
+#: flypage/ui/dialogs.py:97
+msgid "Documents"
+msgstr ""
+
+#: flypage/ui/dialogs.py:111
+msgid "No folder chosen"
+msgstr ""
+
+#: flypage/ui/dialogs.py:114
+msgid "Destination Folder"
+msgstr ""
+
+#: flypage/ui/dialogs.py:135
+msgid "From a File…"
+msgstr ""
+
+#: flypage/ui/dialogs.py:152
+msgid "Images"
+msgstr ""
+
+#: flypage/ui/dialogs.py:175
+msgid "Another destination already has this name."
+msgstr ""
+
+#: flypage/ui/dialogs.py:187
+msgid "Edit Scanner"
+msgstr ""
+
+#: flypage/ui/dialogs.py:187
+msgid "New Scanner"
+msgstr ""
+
+#: flypage/ui/dialogs.py:192
+msgid "Detect"
+msgstr ""
+
+#: flypage/ui/dialogs.py:193
+msgid "Plug in your scanner now (or leave it plugged in), then click “Use”."
+msgstr ""
+
+#: flypage/ui/dialogs.py:195
+msgid "Waiting for a USB storage device…"
+msgstr ""
+
+#: flypage/ui/dialogs.py:209
+msgid "Identification"
+msgstr ""
+
+#: flypage/ui/dialogs.py:211
+msgid ""
+"Filled in by “Use” above, or by hand: the “lsusb” command shows “ID "
+"07b4:0109” for vendor 07b4 and model 0109."
+msgstr ""
+
+#: flypage/ui/dialogs.py:216
+msgid "Vendor ID"
+msgstr ""
+
+#: flypage/ui/dialogs.py:217
+msgid "Model ID (empty: any model)"
+msgstr ""
+
+#: flypage/ui/dialogs.py:218
+msgid "Serial number (empty: any unit)"
+msgstr ""
+
+#: flypage/ui/dialogs.py:222
+msgid "Folder on the scanner (empty: whole memory)"
+msgstr ""
+
+#: flypage/ui/dialogs.py:224
+msgid "Delete from the scanner after import"
+msgstr ""
+
+#: flypage/ui/dialogs.py:225
+msgid "Once the searchable PDFs have been written"
+msgstr ""
+
+#: flypage/ui/dialogs.py:239
+msgid "_Use"
+msgstr ""
+
+#: flypage/ui/processing_window.py:49
+msgid "Select a file to preview it"
+msgstr ""
+
+#: flypage/ui/processing_window.py:76
+#, python-brace-format
+msgid "{n} file selected"
+msgid_plural "{n} files selected"
+msgstr[0] ""
+msgstr[1] ""
+
+#: flypage/ui/processing_window.py:77
+msgid "Drag them onto a folder, or click a folder, to send them."
+msgstr ""
+
+#: flypage/ui/processing_window.py:89
+#, python-brace-format
+msgid "Chain {number}"
+msgstr ""
+
+#: flypage/ui/processing_window.py:90
+#, python-brace-format
+msgid "{n} file"
+msgid_plural "{n} files"
+msgstr[0] ""
+msgstr[1] ""
+
+#: flypage/ui/processing_window.py:91 flypage/ui/processing_window.py:94
+#: flypage/ui/thumbnail_grid.py:182
+#, python-brace-format
+msgid "{n} page"
+msgid_plural "{n} pages"
+msgstr[0] ""
+msgstr[1] ""
+
+#: flypage/ui/processing_window.py:97
+#, python-brace-format
+msgid "In “Default”: {name}"
+msgstr ""
+
+#: flypage/ui/processing_window.py:99
+#, python-brace-format
+msgid "Failed: {error}"
+msgstr ""
+
+#: flypage/ui/processing_window.py:137
+msgid "_Chain"
+msgstr ""
+
+#: flypage/ui/processing_window.py:139
+msgid "Merge the selected files into one PDF (or unchain them)"
+msgstr ""
+
+#: flypage/ui/processing_window.py:142 flypage/ui/processing_window.py:255
+msgid "_Delete"
+msgstr ""
+
+#: flypage/ui/processing_window.py:144
+msgid "Delete the selected files"
+msgstr ""
+
+#: flypage/ui/processing_window.py:147
+msgid "Same for all"
+msgstr ""
+
+#: flypage/ui/processing_window.py:148
+msgid "A drop sends every file to that folder"
+msgstr ""
+
+#. fmt: skip
+#: flypage/ui/processing_window.py:149
+msgid "Per file"
+msgstr ""
+
+#: flypage/ui/processing_window.py:149
+msgid "A drop sends only the dragged files"
+msgstr ""
+
+#: flypage/ui/processing_window.py:156
+msgid "Mode"
+msgstr ""
+
+#: flypage/ui/processing_window.py:163
+msgid "Stop everything and close"
+msgstr ""
+
+#: flypage/ui/processing_window.py:249
+#, python-brace-format
+msgid "Delete {n} file?"
+msgid_plural "Delete {n} files?"
+msgstr[0] ""
+msgstr[1] ""
+
+#: flypage/ui/processing_window.py:250
+msgid "They are deleted from the scanner memory. This cannot be undone."
+msgstr ""
+
+#: flypage/ui/processing_window.py:252
+msgid "They are deleted from the disk. This cannot be undone."
+msgstr ""
+
+#: flypage/ui/processing_window.py:271
+msgid "Select files first, or drag them onto a folder."
+msgstr ""
+
+#: flypage/ui/processing_window.py:278
+msgid "OCR cannot start"
+msgstr ""
+
+#: flypage/ui/processing_window.py:286
+msgid "Drag files onto a folder to start"
+msgstr ""
+
+#: flypage/ui/processing_window.py:297
+#, python-brace-format
+msgid "{name}: OCR failed"
+msgstr ""
+
+#: flypage/ui/processing_window.py:306
+msgid "Creating searchable PDFs…"
+msgstr ""
+
+#: flypage/ui/processing_window.py:308
+#, python-brace-format
+msgid "{n} file failed — send it again or delete it"
+msgid_plural "{n} files failed — send them again or delete them"
+msgstr[0] ""
+msgstr[1] ""
+
+#: flypage/ui/processing_window.py:311
+#, python-brace-format
+msgid "{n} file from {source} — drag it onto a folder"
+msgid_plural "{n} files from {source} — drag them onto a folder"
+msgstr[0] ""
+msgstr[1] ""
+
+#: flypage/ui/processing_window.py:327
+#, python-brace-format
+msgid "{n} in {folder}"
+msgid_plural "{n} in {folder}"
+msgstr[0] ""
+msgstr[1] ""
+
+#: flypage/ui/processing_window.py:335
+msgid "_Close"
+msgstr ""
+
+#: flypage/ui/processing_window.py:368
+#, python-brace-format
+msgid "This window closes in {s} second."
+msgid_plural "This window closes in {s} seconds."
+msgstr[0] ""
+msgstr[1] ""
+
+#: flypage/ui/processing_window.py:385
+msgid "Stop OCR?"
+msgstr ""
+
+#: flypage/ui/processing_window.py:386
+msgid ""
+"The files being processed stay where they are. PDFs already created are kept."
+msgstr ""
+
+#: flypage/ui/processing_window.py:388
+msgid "_Continue"
+msgstr ""
+
+#: flypage/ui/processing_window.py:389
+msgid "_Stop and Close"
+msgstr ""
+
+#: flypage/ui/processing_window.py:410
+msgid "_OK"
+msgstr ""
+
+#: flypage/ui/settings_window.py:25
+msgid "Flypage Settings"
+msgstr ""
+
+#: flypage/ui/settings_window.py:62
+#, python-brace-format
+msgid "Cannot save the settings: {error}"
+msgstr ""
+
+#: flypage/ui/settings_window.py:126
+msgid "Destinations"
+msgstr ""
+
+#: flypage/ui/settings_window.py:128
+msgid "Destination Folders"
+msgstr ""
+
+#: flypage/ui/settings_window.py:130
+msgid ""
+"Shown as icons in the processing window, in this order, after “Default”. The "
+"default folder (selected on the left) receives the files sent to “Default”."
+msgstr ""
+
+#: flypage/ui/settings_window.py:133
+msgid "Add a destination"
+msgstr ""
+
+#: flypage/ui/settings_window.py:146
+msgid "Default destination"
+msgstr ""
+
+#: flypage/ui/settings_window.py:153
+msgid "Move up"
+msgstr ""
+
+#: flypage/ui/settings_window.py:154
+msgid "Move down"
+msgstr ""
+
+#: flypage/ui/settings_window.py:156 flypage/ui/settings_window.py:331
+msgid "Remove"
+msgstr ""
+
+#: flypage/ui/settings_window.py:205 flypage/ui/settings_window.py:360
+#, python-brace-format
+msgid "“{name}” removed"
+msgstr ""
+
+#: flypage/ui/settings_window.py:205 flypage/ui/settings_window.py:360
+msgid "_Undo"
+msgstr ""
+
+#: flypage/ui/settings_window.py:220
+msgid "Naming"
+msgstr ""
+
+#: flypage/ui/settings_window.py:224
+msgid "Output File Name"
+msgstr ""
+
+#: flypage/ui/settings_window.py:226
+msgid ""
+"Used for every destination without a template of its own. Click a code to "
+"insert it. Other date codes work too, e.g. %b (month name), %a (weekday), %y "
+"(2-digit year), %-d (day without leading zero); write %% for a percent sign. "
+"“.pdf” is added, and “-1”, “-2”… if the name is already taken."
+msgstr ""
+
+#: flypage/ui/settings_window.py:249
+msgid "OCR"
+msgstr ""
+
+#: flypage/ui/settings_window.py:255
+msgid "Engine"
+msgstr ""
+
+#: flypage/ui/settings_window.py:260
+msgid "Fast, runs on any computer"
+msgstr ""
+
+#: flypage/ui/settings_window.py:262
+msgid "Not installed: sudo apt install ocrmypdf"
+msgstr ""
+
+#: flypage/ui/settings_window.py:269
+msgid "Languages"
+msgstr ""
+
+#: flypage/ui/settings_window.py:271
+msgid ""
+"Languages present in your documents. To add one, install its Tesseract "
+"package, e.g. “sudo apt install tesseract-ocr-deu” for German."
+msgstr ""
+
+#: flypage/ui/settings_window.py:277
+#, python-brace-format
+msgid "{code} — not installed"
+msgstr ""
+
+#: flypage/ui/settings_window.py:298
+msgid "At least one language is needed."
+msgstr ""
+
+#: flypage/ui/settings_window.py:312
+msgid "Scanners"
+msgstr ""
+
+#: flypage/ui/settings_window.py:314
+msgid "Scanners with Memory"
+msgstr ""
+
+#: flypage/ui/settings_window.py:315
+msgid "Flypage imports the files of these scanners when they are plugged in."
+msgstr ""
+
+#: flypage/ui/settings_window.py:316
+msgid "Add a scanner"
+msgstr ""
+
+#: flypage/ui/settings_window.py:326
+msgid "whole memory"
+msgstr ""
+
+#: flypage/ui/settings_window.py:328
+msgid "deleted after import"
+msgstr ""
+
+#: flypage/ui/settings_window.py:335
+msgid "No scanner configured"
+msgstr ""
+
+#: flypage/ui/settings_window.py:378
+msgid "Interface"
+msgstr ""
+
+#: flypage/ui/settings_window.py:379
+msgid "Language"
+msgstr ""
+
+#: flypage/ui/settings_window.py:379
+msgid "Applies the next time Flypage starts."
+msgstr ""
+
+#: flypage/ui/settings_window.py:380
+msgid "System default"
+msgstr ""
+
+#: flypage/ui/settings_window.py:381
+msgid "Interface language"
+msgstr ""
+
+#: flypage/ui/template_editor.py:13
+msgid "year"
+msgstr ""
+
+#: flypage/ui/template_editor.py:14
+msgid "month"
+msgstr ""
+
+#: flypage/ui/template_editor.py:15
+msgid "day"
+msgstr ""
+
+#: flypage/ui/template_editor.py:16
+msgid "hour"
+msgstr ""
+
+#: flypage/ui/template_editor.py:17
+msgid "minute"
+msgstr ""
+
+#: flypage/ui/template_editor.py:18
+msgid "second"
+msgstr ""
+
+#: flypage/ui/template_editor.py:19
+msgid "number"
+msgstr ""
+
+#: flypage/ui/template_editor.py:20
+msgid "number, 3 digits"
+msgstr ""
+
+#: flypage/ui/template_editor.py:21
+msgid "destination"
+msgstr ""
+
+#: flypage/ui/template_editor.py:22
+msgid "original name"
+msgstr ""
+
+#: flypage/ui/template_editor.py:23
+msgid "scanner"
+msgstr ""
+
+#: flypage/ui/template_editor.py:24
+msgid "pages"
+msgstr ""
+
+#: flypage/ui/template_editor.py:25
+msgid "scan date"
+msgstr ""
+
+#: flypage/ui/template_editor.py:40
+msgid "File name template"
+msgstr ""
+
+#: flypage/ui/template_editor.py:48 flypage/ui/template_editor.py:94
+msgid "Example"
+msgstr ""
+
+#: flypage/ui/template_editor.py:69
+#, python-brace-format
+msgid "Insert {code} (e.g. “{example}”)"
+msgstr ""
+
+#: flypage/ui/template_editor.py:90
+msgid "Invalid template"
+msgstr ""
+
+#: flypage/ui/thumbnail_grid.py:175
+#, python-brace-format
+msgid "Chain {number}: merged into one PDF"
+msgstr ""
+
+#: flypage/ui/thumbnail_grid.py:290
+msgid "Remove from Chain"
+msgstr ""
+
+#: flypage/ui/thumbnail_grid.py:294
+msgid "Delete"
+msgstr ""
