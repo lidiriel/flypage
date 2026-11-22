@@ -226,3 +226,18 @@ def test_preview_says_a_digital_pdf_gets_no_ocr(cfg, samples):
     finally:
         session.cancel()
         win.destroy()
+
+
+def test_destination_icon_from_a_file_is_shown_on_queued_files(tmp_path):
+    from flypage.ui.widgets import icon_image, set_icon
+
+    svg = tmp_path / "books.svg"
+    svg.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16"/></svg>')
+    image = Gtk.Image()
+    set_icon(image, str(svg))
+    assert image.get_storage_type() == Gtk.ImageType.PAINTABLE  # loaded from the file, not looked up by name
+    set_icon(image, "folder-documents-symbolic")
+    assert image.get_icon_name() == "folder-documents-symbolic"
+    set_icon(image, str(tmp_path / "gone.svg"))
+    assert image.get_icon_name() == "folder-symbolic"
+    assert icon_image(str(svg)).get_storage_type() == Gtk.ImageType.PAINTABLE

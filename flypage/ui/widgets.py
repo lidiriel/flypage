@@ -44,12 +44,19 @@ def available_icons() -> list[str]:
 
 def icon_image(icon: str, pixel_size: int = 24) -> Gtk.Image:
     """An image for a destination icon: a theme icon name, or the path of an image file."""
-    if os.path.isabs(icon) and os.path.exists(icon):
-        image = Gtk.Image.new_from_file(icon)
-    else:
-        image = Gtk.Image.new_from_icon_name(icon or "folder-symbolic")
-    image.set_pixel_size(pixel_size)
+    image = Gtk.Image(pixel_size=pixel_size)
+    set_icon(image, icon)
     return image
+
+
+def set_icon(image: Gtk.Image, icon: str) -> None:
+    """Show a destination icon (theme icon name or image file path) in ``image``."""
+    if os.path.isabs(icon):
+        if os.path.exists(icon):
+            image.set_from_file(icon)
+            return
+        icon = ""  # the file is gone: a plain folder rather than the "missing" icon
+    image.set_from_icon_name(icon or "folder-symbolic")
 
 
 def mark_error(widget: Gtk.Widget, error: bool) -> None:

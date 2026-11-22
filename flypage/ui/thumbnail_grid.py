@@ -15,6 +15,7 @@ from flypage import thumbnails
 from flypage.i18n import _, ngettext
 from flypage.model import FAILED, QUEUED, ImportedFile
 from flypage.session import Session
+from flypage.ui.widgets import set_icon
 
 log = logging.getLogger(__name__)
 
@@ -213,7 +214,7 @@ class ThumbnailCell(Gtk.Box):
 
         self.dest_badge.set_visible(queued and bool(item.dest_icon))
         if queued:
-            self.dest_badge.set_from_icon_name(item.dest_icon or "folder-symbolic")
+            set_icon(self.dest_badge, item.dest_icon)
 
         self.pages_badge.set_visible(item.pages > 1)
         self.pages_badge.set_label(ngettext("{n} page", "{n} pages", item.pages).format(n=item.pages))
