@@ -1,3 +1,11 @@
+flypage (0.1.3) unstable; urgency=medium
+
+  * Eject the scanner (unmount and power off) when the processing window
+    closes; the end notification says when it can be unplugged. A
+    per-scanner setting turns it off.
+
+ -- ludovic <ludovic@scilink.net>  Sun, 22 Nov 2026 21:27:16 +0100
+
 flypage (0.1.2) unstable; urgency=medium
 
   * Compact processing window on small screens (e.g. 1366x768): it opens
