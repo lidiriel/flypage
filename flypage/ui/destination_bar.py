@@ -38,7 +38,7 @@ class DestinationBar(Gtk.ScrolledWindow):
     def __init__(self, cfg: Config) -> None:
         super().__init__(vscrollbar_policy=Gtk.PolicyType.NEVER, hscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
         box = Gtk.Box(spacing=6, margin_start=12, margin_end=12, margin_top=6, margin_bottom=6)
-        self.buttons = [DestinationButton(d, d.name, d.icon) for d in cfg.destinations]
+        self.buttons = [DestinationButton(d, d.name, d.display_icon()) for d in cfg.destinations]
         for button in self.buttons:
             button.set_tooltip_text(
                 _("{name}: {path}\nDrop files here, or click to send the selection.").format(

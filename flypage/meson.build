@@ -23,6 +23,7 @@ py.install_sources(
     'defs.py',
     'device.py',
     'i18n.py',
+    'icons.py',
     'importer.py',
     'languages.py',
     'model.py',

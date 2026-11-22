@@ -144,7 +144,7 @@ class DestinationsPage(_Page):
             if dest.table_layout:
                 subtitle += "  ·  " + _("tables")
             row = Adw.ActionRow(title=dest.name, subtitle=subtitle, use_markup=False, activatable=True)
-            row.add_prefix(icon_image(dest.icon))
+            row.add_prefix(icon_image(dest.display_icon()))
             row.add_suffix(_icon_button("go-up-symbolic", _("Move up"), self._move, i, -1, sensitive=i > 0))
             row.add_suffix(_icon_button("go-down-symbolic", _("Move down"), self._move, i, 1, sensitive=i < len(dests) - 1))
             row.add_suffix(

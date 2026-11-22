@@ -120,6 +120,8 @@ class DestinationDialog(FormDialog):
         else:
             self.folder_row.set_title(_("Folder"))
             self.folder_row.set_subtitle(_("No folder chosen"))
+        if hasattr(self, "icon_button"):  # an automatic icon follows the folder
+            self._show_icon()
         if hasattr(self, "template_editor"):  # examples use the folder's name
             self.template_editor.dest_name = self.dest.name or _("Documents")
             self.template_editor._on_changed(self.template_editor.entry)
@@ -141,6 +143,11 @@ class DestinationDialog(FormDialog):
             self.check()
 
     def _icon_popover(self) -> Gtk.Popover:
+        automatic = Gtk.Button(
+            label=_("Automatic: the Folder's Icon"), css_classes=["flat"], margin_bottom=6,
+            tooltip_text=_("The icon the folder has in the file manager, read each time Flypage opens"),
+        )  # fmt: skip
+        automatic.connect("clicked", self._on_icon_picked, "")
         grid = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=6, min_children_per_line=6)
         for name in available_icons():
             button = Gtk.Button(child=icon_image(name), css_classes=["flat"], tooltip_text=name)
@@ -149,12 +156,14 @@ class DestinationDialog(FormDialog):
         from_file = Gtk.Button(label=_("From a File…"), css_classes=["flat"], margin_top=6)
         from_file.connect("clicked", self._choose_icon_file)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin_top=6, margin_bottom=6, margin_start=6, margin_end=6)
+        box.append(automatic)
         box.append(grid)
         box.append(from_file)
         return Gtk.Popover(child=box)
 
     def _show_icon(self) -> None:
-        self.icon_button.set_child(icon_image(self.dest.icon))
+        self.icon_button.set_child(icon_image(self.dest.display_icon()))
+        self.icon_row.set_subtitle(_("Automatic: the folder's icon") if self.dest.automatic_icon else "")
 
     def _on_icon_picked(self, _button, icon: str) -> None:
         self.dest.icon = icon

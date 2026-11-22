@@ -351,7 +351,7 @@ class ProcessingWindow(Adw.ApplicationWindow):
 
     @staticmethod
     def folder_destination(path: Path) -> Destination:
-        return Destination(path=str(path), icon="folder-symbolic")
+        return Destination(path=str(path))  # the folder's own icon
 
     def _on_progress(self, _session, _done: int, _total: int, current: str) -> None:
         self._current = current

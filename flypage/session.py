@@ -151,7 +151,7 @@ class Session(GObject.Object):
             self._estimator.queue(item.id, item.pages, doc.passthrough)
             item.state = QUEUED
             item.error = ""
-            item.dest_icon = dest.icon
+            item.dest_icon = dest.display_icon()
             item.progress = -1.0
             self._pending += 1
             future.add_done_callback(lambda f, it=item: GLib.idle_add(self._on_done, it, f))

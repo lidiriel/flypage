@@ -66,10 +66,13 @@ class Scanner:
     delete_after_import: bool = True
 
 
+AUTO_ICONS = ("", "folder-symbolic")  # "folder-symbolic": the default of older versions
+
+
 @dataclass
 class Destination:
     path: str  # as written by the user, may start with "~"
-    icon: str = "folder-symbolic"
+    icon: str = ""  # icon name or image path; "" = the folder's own icon (see display_icon)
     template: str = ""  # overrides naming.template when set
     table_layout: bool = False  # read tables row by row (e.g. invoices)
 
@@ -80,6 +83,18 @@ class Destination:
 
     def expanded_path(self) -> Path:
         return Path(self.path).expanduser()
+
+    @property
+    def automatic_icon(self) -> bool:
+        return self.icon in AUTO_ICONS
+
+    def display_icon(self) -> str:
+        """The icon chosen in Flypage, else the folder's icon in the file manager."""
+        if not self.automatic_icon:
+            return self.icon
+        from flypage.icons import folder_icon
+
+        return folder_icon(self.expanded_path())
 
     def same_folder(self, other: Destination) -> bool:
         return os.path.normpath(self.expanded_path()) == os.path.normpath(other.expanded_path())
@@ -105,7 +120,7 @@ def pictures_dir() -> str:
 
 
 def _default_destinations() -> list[Destination]:
-    return [Destination(path=pictures_dir(), icon="folder-pictures-symbolic")]
+    return [Destination(path=pictures_dir())]
 
 
 @dataclass
@@ -280,6 +295,8 @@ def to_dict(cfg: Config) -> dict[str, Any]:
             del dest["template"]  # keep the file readable: no override
         if not dest["table_layout"]:
             del dest["table_layout"]
+        if not dest["icon"]:
+            del dest["icon"]  # the folder's own icon
     return data
 
 

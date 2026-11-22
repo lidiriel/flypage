@@ -39,7 +39,8 @@ OCR'd), is filed as it is, without OCR: the preview says so.
 Everything else is set in the **Settings** window, opened from the system
 menu: scanner profiles (several scanners are possible), destination
 folders with their icons (each named after its folder; a new
-configuration starts with your Pictures folder, e.g. `~/Images`), OCR languages (in
+configuration starts with your Pictures folder, e.g. `~/Images`; the icon is
+by default the one the folder has in the file manager), OCR languages (in
 order: the first one is the window's default), optional OCR steps (see
 [OCR speed and options](#ocr-speed-and-options)), the file name template
 and the interface language. The interface is in English, with a French

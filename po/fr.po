@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: flypage\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-22 17:27+0100\n"
+"POT-Creation-Date: 2026-11-22 17:50+0100\n"
 "PO-Revision-Date: 2026-11-22 15:30+0100\n"
 "Last-Translator: Flypage developers\n"
 "Language-Team: French\n"
@@ -358,7 +358,7 @@ msgstr "Dossier"
 msgid "Choose…"
 msgstr "Choisir…"
 
-#: flypage/ui/dialogs.py:79 flypage/ui/dialogs.py:171
+#: flypage/ui/dialogs.py:79 flypage/ui/dialogs.py:180
 msgid "Icon"
 msgstr "Icône"
 
@@ -393,7 +393,7 @@ msgid "Instead of the template on the Naming page"
 msgstr "À la place du modèle de la page Nommage"
 
 #. examples use the folder's name
-#: flypage/ui/dialogs.py:103 flypage/ui/dialogs.py:124
+#: flypage/ui/dialogs.py:103 flypage/ui/dialogs.py:126
 msgid "Documents"
 msgstr "Documents"
 
@@ -401,49 +401,64 @@ msgstr "Documents"
 msgid "No folder chosen"
 msgstr "Aucun dossier choisi"
 
-#: flypage/ui/dialogs.py:128
+#: flypage/ui/dialogs.py:130
 msgid "Destination Folder"
 msgstr "Dossier de destination"
 
-#: flypage/ui/dialogs.py:149
+#: flypage/ui/dialogs.py:147
+msgid "Automatic: the Folder's Icon"
+msgstr "Automatique : l'icône du dossier"
+
+#: flypage/ui/dialogs.py:148
+msgid ""
+"The icon the folder has in the file manager, read each time Flypage opens"
+msgstr ""
+"L'icône du dossier dans le gestionnaire de fichiers, lue à chaque ouverture "
+"de Flypage"
+
+#: flypage/ui/dialogs.py:156
 msgid "From a File…"
 msgstr "Depuis un fichier…"
 
 #: flypage/ui/dialogs.py:166
+msgid "Automatic: the folder's icon"
+msgstr "Automatique : l'icône du dossier"
+
+#: flypage/ui/dialogs.py:175
 msgid "Images"
 msgstr "Images"
 
-#: flypage/ui/dialogs.py:188
+#: flypage/ui/dialogs.py:197
 msgid "This folder is already a destination."
 msgstr "Ce dossier est déjà une destination."
 
-#: flypage/ui/dialogs.py:200
+#: flypage/ui/dialogs.py:209
 msgid "Edit Scanner"
 msgstr "Modifier le scanner"
 
-#: flypage/ui/dialogs.py:200
+#: flypage/ui/dialogs.py:209
 msgid "New Scanner"
 msgstr "Nouveau scanner"
 
-#: flypage/ui/dialogs.py:205
+#: flypage/ui/dialogs.py:214
 msgid "Detect"
 msgstr "Détection"
 
-#: flypage/ui/dialogs.py:206
+#: flypage/ui/dialogs.py:215
 msgid "Plug in your scanner now (or leave it plugged in), then click “Use”."
 msgstr ""
 "Branchez votre scanner maintenant (ou laissez-le branché), puis cliquez sur "
 "« Utiliser »."
 
-#: flypage/ui/dialogs.py:208
+#: flypage/ui/dialogs.py:217
 msgid "Waiting for a USB storage device…"
 msgstr "En attente d'un périphérique de stockage USB…"
 
-#: flypage/ui/dialogs.py:222
+#: flypage/ui/dialogs.py:231
 msgid "Identification"
 msgstr "Identification"
 
-#: flypage/ui/dialogs.py:224
+#: flypage/ui/dialogs.py:233
 msgid ""
 "Filled in by “Use” above, or by hand: the “lsusb” command shows “ID "
 "07b4:0109” for vendor 07b4 and model 0109."
@@ -451,35 +466,35 @@ msgstr ""
 "Rempli par « Utiliser » ci-dessus, ou à la main : la commande « lsusb » "
 "affiche « ID 07b4:0109 » pour le fabricant 07b4 et le modèle 0109."
 
-#: flypage/ui/dialogs.py:228
+#: flypage/ui/dialogs.py:237
 msgid "Name"
 msgstr "Nom"
 
-#: flypage/ui/dialogs.py:229
+#: flypage/ui/dialogs.py:238
 msgid "Vendor ID"
 msgstr "Identifiant du fabricant"
 
-#: flypage/ui/dialogs.py:230
+#: flypage/ui/dialogs.py:239
 msgid "Model ID (empty: any model)"
 msgstr "Identifiant du modèle (vide : tout modèle)"
 
-#: flypage/ui/dialogs.py:231
+#: flypage/ui/dialogs.py:240
 msgid "Serial number (empty: any unit)"
 msgstr "Numéro de série (vide : tout appareil)"
 
-#: flypage/ui/dialogs.py:235
+#: flypage/ui/dialogs.py:244
 msgid "Folder on the scanner (empty: whole memory)"
 msgstr "Dossier sur le scanner (vide : toute la mémoire)"
 
-#: flypage/ui/dialogs.py:237
+#: flypage/ui/dialogs.py:246
 msgid "Delete from the scanner after import"
 msgstr "Supprimer du scanner après l'import"
 
-#: flypage/ui/dialogs.py:238
+#: flypage/ui/dialogs.py:247
 msgid "Once the searchable PDFs have been written"
 msgstr "Une fois les PDF interrogeables écrits"
 
-#: flypage/ui/dialogs.py:252
+#: flypage/ui/dialogs.py:261
 msgid "_Use"
 msgstr "_Utiliser"
 
@@ -520,7 +535,7 @@ msgstr ""
 "Chaque fichier est envoyé séparément. Glissez-les sur un dossier, ou cliquez "
 "sur un dossier."
 
-#: flypage/ui/processing_window.py:107 flypage/ui/thumbnail_grid.py:219
+#: flypage/ui/processing_window.py:107 flypage/ui/thumbnail_grid.py:220
 #, python-brace-format
 msgid "{n} page"
 msgid_plural "{n} pages"
@@ -1015,15 +1030,15 @@ msgstr "Insérer {code} (par ex. « {example} »)"
 msgid "Invalid template"
 msgstr "Modèle invalide"
 
-#: flypage/ui/thumbnail_grid.py:113
+#: flypage/ui/thumbnail_grid.py:114
 #, python-brace-format
 msgid "{percent} %"
 msgstr "{percent} %"
 
-#: flypage/ui/thumbnail_grid.py:152
+#: flypage/ui/thumbnail_grid.py:153
 msgid "Waiting"
 msgstr "En attente"
 
-#: flypage/ui/thumbnail_grid.py:328
+#: flypage/ui/thumbnail_grid.py:329
 msgid "Delete"
 msgstr "Supprimer"
