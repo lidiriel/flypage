@@ -24,6 +24,9 @@
   <developer id="io.github.flypage">
     <name translate="no">Flypage developers</name>
   </developer>
+  <url type="homepage">https://github.com/lidiriel/flypage</url>
+  <url type="bugtracker">https://github.com/lidiriel/flypage/issues</url>
+  <url type="vcs-browser">https://github.com/lidiriel/flypage</url>
   <content_rating type="oars-1.1"/>
   <provides>
     <binary>flypage</binary>

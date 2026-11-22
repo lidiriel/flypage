@@ -31,6 +31,7 @@ py.install_sources(
     'paths.py',
     'pending.py',
     'pipeline.py',
+    'progress.py',
     'scanners.py',
     'session.py',
     'thumbnails.py',

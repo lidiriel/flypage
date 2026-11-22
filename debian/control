@@ -26,6 +26,9 @@ Build-Depends:
  qpdf <!nocheck>,
 Standards-Version: 4.7.2
 Rules-Requires-Root: no
+Homepage: https://github.com/lidiriel/flypage
+Vcs-Browser: https://github.com/lidiriel/flypage
+Vcs-Git: https://github.com/lidiriel/flypage.git
 
 Package: flypage
 Architecture: all
