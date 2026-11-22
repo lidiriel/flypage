@@ -127,8 +127,8 @@ class DestinationsPage(_Page):
         self.group = _ListGroup(
             _("Destination Folders"),
             _(
-                "Shown as icons in the processing window, in this order, after “Default”. "
-                "The default folder (selected on the left) receives the files sent to “Default”."
+                "Shown as icons in the processing window, in this order. Each one is named after its "
+                "folder; “Other Folder…” in the window sends anywhere else."
             ),
             _("Add a destination"),
             self._add,
@@ -139,18 +139,11 @@ class DestinationsPage(_Page):
     def refresh(self) -> None:
         dests = self.cfg.destinations
         rows = []
-        first_radio = None
         for i, dest in enumerate(dests):
             subtitle = dest.path + (f"  ·  {dest.template}" if dest.template else "")
             if dest.table_layout:
                 subtitle += "  ·  " + _("tables")
             row = Adw.ActionRow(title=dest.name, subtitle=subtitle, use_markup=False, activatable=True)
-            radio = Gtk.CheckButton(active=dest.default, valign=Gtk.Align.CENTER, tooltip_text=_("Default destination"))
-            if first_radio:
-                radio.set_group(first_radio)
-            first_radio = first_radio or radio
-            radio.connect("toggled", self._on_default_toggled, dest)
-            row.add_prefix(radio)
             row.add_prefix(icon_image(dest.icon))
             row.add_suffix(_icon_button("go-up-symbolic", _("Move up"), self._move, i, -1, sensitive=i > 0))
             row.add_suffix(_icon_button("go-down-symbolic", _("Move down"), self._move, i, 1, sensitive=i < len(dests) - 1))
@@ -161,8 +154,9 @@ class DestinationsPage(_Page):
             rows.append(row)
         self.group.set_rows(rows)
 
-    def _taken(self, exclude: Destination | None = None) -> set[str]:
-        return {d.name for d in self.cfg.destinations if d is not exclude}
+    def _taken(self, exclude: Destination | None = None) -> list[Destination]:
+        """The other destinations: a folder can be listed once only."""
+        return [d for d in self.cfg.destinations if d is not exclude]
 
     def _add(self) -> None:
         def save(dest: Destination) -> None:
@@ -179,12 +173,6 @@ class DestinationsPage(_Page):
 
         DestinationDialog(dest, self._taken(dest), self.cfg.naming.template, save).present(self.window)
 
-    def _on_default_toggled(self, radio: Gtk.CheckButton, dest: Destination) -> None:
-        if radio.get_active() and not dest.default:
-            for d in self.cfg.destinations:
-                d.default = d is dest
-            self.window.changed()
-
     def _move(self, index: int, step: int) -> None:
         dests = self.cfg.destinations
         dests[index], dests[index + step] = dests[index + step], dests[index]
@@ -193,14 +181,9 @@ class DestinationsPage(_Page):
     def _remove(self, index: int) -> None:
         dests = self.cfg.destinations
         removed = dests.pop(index)
-        if removed.default:
-            dests[0].default = True
         self._commit()
 
         def undo(_toast) -> None:
-            if removed.default:
-                for d in dests:
-                    d.default = False
             dests.insert(min(index, len(dests)), removed)
             self._commit()
 
@@ -222,7 +205,7 @@ class NamingPage(_Page):
         super().__init__(window, _("Naming"), "document-edit-symbolic")
         editor = TemplateEditor(
             self.cfg.naming.template,
-            self.cfg.default_destination().name,
+            self.cfg.destinations[0].name,
             title=_("Output File Name"),
             description=_(
                 "Used for every destination without a template of its own. Click a code to insert it. "

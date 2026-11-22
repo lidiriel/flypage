@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import pytest
 
@@ -30,7 +31,8 @@ def test_relative_xdg_is_ignored(monkeypatch, tmp_path):
 def test_missing_file_gives_defaults():
     cfg = config.load()
     assert cfg == Config()
-    assert cfg.default_destination().name == "Documents"
+    [pictures] = cfg.destinations  # the desktop's Pictures folder
+    assert pictures.path == config.pictures_dir() and pictures.name == Path(pictures.path).name
     assert cfg.scanners[0].vendor_id == "07b4"
 
 
@@ -39,8 +41,8 @@ def test_round_trip():
         ui_language="fr",
         scanners=[Scanner(name="Mine", vendor_id="07b4", model_id="0281", delete_after_import=False)],
         destinations=[
-            Destination(name="Invoices", path="~/Invoices", icon="folder-documents-symbolic"),
-            Destination(name="Taxes", path="/srv/taxes", default=True, template="%Y_tax"),
+            Destination(path="~/Invoices", icon="folder-documents-symbolic"),
+            Destination(path="/srv/taxes", template="%Y_tax"),
         ],
     )
     cfg.ocr.languages = ["fra"]
@@ -122,37 +124,27 @@ def test_empty_scanner_list_is_kept():
     assert config.from_dict({"scanners": []}).scanners == []
 
 
-def test_destinations_without_default_get_the_first():
-    cfg = config.from_dict({"destinations": [{"name": "A", "path": "/a"}, {"name": "B", "path": "/b"}]})
-    assert [d.default for d in cfg.destinations] == [True, False]
-
-
-def test_destinations_keep_only_the_first_default():
-    cfg = config.from_dict(
-        {
-            "destinations": [
-                {"name": "A", "path": "/a"},
-                {"name": "B", "path": "/b", "default": True},
-                {"name": "C", "path": "/c", "default": True},
-            ]
-        }
-    )
-    assert [d.default for d in cfg.destinations] == [False, True, False]
-    assert cfg.default_destination().name == "B"
+def test_old_destination_name_and_default_are_dropped_quietly(caplog):
+    with caplog.at_level(logging.WARNING):
+        cfg = config.from_dict({"destinations": [{"name": "Docs", "path": "~/Scans", "default": True}]})
+    assert cfg.destinations == [Destination(path="~/Scans")]
+    assert cfg.destinations[0].name == "Scans"  # named after the folder
+    assert caplog.text == ""
 
 
 def test_invalid_and_duplicate_destinations_are_dropped():
     cfg = config.from_dict(
         {
             "destinations": [
-                {"name": "A", "path": "/a"},
-                {"name": "A", "path": "/other"},
-                {"name": " ", "path": "/blank"},
-                {"name": "NoPath"},
+                {"path": "/a"},
+                {"path": "/a/"},  # the same folder
+                {"path": "/other/a"},  # same name, another folder: kept
+                {"path": " "},
+                {"icon": "x"},
             ]
         }
     )
-    assert [(d.name, d.path) for d in cfg.destinations] == [("A", "/a")]
+    assert [(d.name, d.path) for d in cfg.destinations] == [("a", "/a"), ("a", "/other/a")]
 
 
 def test_no_valid_destination_restores_the_default():
@@ -161,7 +153,7 @@ def test_no_valid_destination_restores_the_default():
 
 def test_expanded_path(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
-    assert Destination(name="D", path="~/Scans").expanded_path() == tmp_path / "Scans"
+    assert Destination(path="~/Scans").expanded_path() == tmp_path / "Scans"
 
 
 def test_invalid_templates_fall_back(caplog):
@@ -204,8 +196,8 @@ def test_default_ocr_language_is_the_desktop_one(monkeypatch, env, expected):
 
 
 def test_ocr_options_and_table_layout_round_trip():
-    cfg = Config(destinations=[Destination(name="Invoices", path="~/I", default=True, table_layout=True),
-                               Destination(name="Docs", path="~/D")])  # fmt: skip
+    cfg = Config(destinations=[Destination(path="~/I", table_layout=True),
+                               Destination(path="~/D")])  # fmt: skip
     cfg.ocr.rotate_pages = True
     config.save(cfg)
     assert config.load() == cfg

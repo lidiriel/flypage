@@ -25,8 +25,8 @@ from flypage.ui.processing_window import ProcessingWindow  # noqa: E402
 def cfg(tmp_path):
     c = Config(
         destinations=[
-            Destination(name="Documents", path=str(tmp_path / "Documents"), default=True),
-            Destination(name="Invoices", path=str(tmp_path / "Invoices")),
+            Destination(path=str(tmp_path / "Documents")),
+            Destination(path=str(tmp_path / "Invoices")),
         ]
     )
     c.naming.template = "%{dest}_%n"
@@ -83,7 +83,7 @@ def test_toolbar_changes_the_session(window):
     window.convert.set_active(False)
     assert not window.session.convert_images
     assert "without OCR" in window.preview.details.get_label()
-    assert "Default”: Documents_1.png" in window.preview.details.get_label()
+    assert "In “Documents”: Documents_1.png" in window.preview.details.get_label()
 
 
 def test_drop_sends_and_unselects(window, cfg):

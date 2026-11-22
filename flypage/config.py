@@ -68,15 +68,21 @@ class Scanner:
 
 @dataclass
 class Destination:
-    name: str
     path: str  # as written by the user, may start with "~"
     icon: str = "folder-symbolic"
-    default: bool = False
     template: str = ""  # overrides naming.template when set
     table_layout: bool = False  # read tables row by row (e.g. invoices)
 
+    @property
+    def name(self) -> str:
+        """The folder's name: shown under its icon, and the value of %{dest}."""
+        return self.expanded_path().name or self.path
+
     def expanded_path(self) -> Path:
         return Path(self.path).expanduser()
+
+    def same_folder(self, other: Destination) -> bool:
+        return os.path.normpath(self.expanded_path()) == os.path.normpath(other.expanded_path())
 
 
 def _default_scanners() -> list[Scanner]:
@@ -86,8 +92,20 @@ def _default_scanners() -> list[Scanner]:
     return [Scanner(name="IRIScan Book", vendor_id="07b4", model_id="0109", source_dir="DCIM")]
 
 
+def pictures_dir() -> str:
+    """The desktop's Pictures folder (~/Images on a French desktop), written with "~"."""
+    path = None
+    try:
+        from gi.repository import GLib
+
+        path = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES)
+    except (ImportError, ValueError):
+        pass
+    return paths.contract_home(path or str(Path.home() / "Pictures"))
+
+
 def _default_destinations() -> list[Destination]:
-    return [Destination(name="Documents", path="~/Documents/Scans", default=True)]
+    return [Destination(path=pictures_dir(), icon="folder-pictures-symbolic")]
 
 
 @dataclass
@@ -97,9 +115,6 @@ class Config:
     naming: NamingConfig = field(default_factory=NamingConfig)
     scanners: list[Scanner] = field(default_factory=_default_scanners)
     destinations: list[Destination] = field(default_factory=_default_destinations)
-
-    def default_destination(self) -> Destination:
-        return next((d for d in self.destinations if d.default), self.destinations[0])
 
 
 def config_path() -> Path:
@@ -235,30 +250,23 @@ def _destinations(raws: list[Any]) -> list[Destination]:
         if not isinstance(raw, dict):
             log.warning("%s: expected a table, ignored", where)
             continue
-        dest = Destination(name="", path="")
+        # Written by older versions: the name is now the folder's, and there is no default.
+        raw = {k: v for k, v in raw.items() if k not in ("name", "default")}
+        dest = Destination(path="")
         _read_into(dest, raw, where)
-        if not dest.name.strip() or not dest.path.strip():
-            log.warning("%s: needs a name and a path, ignored", where)
+        if not dest.path.strip():
+            log.warning("%s: needs a path, ignored", where)
             continue
         if dest.template and not _template_ok(dest.template, f"{where}.template"):
             dest.template = ""
-        if any(d.name == dest.name for d in result):
-            log.warning("%s: duplicate name %r, ignored", where, dest.name)
+        if any(d.same_folder(dest) for d in result):
+            log.warning("%s: folder %r already listed, ignored", where, dest.path)
             continue
         result.append(dest)
 
     if not result:
         log.warning("config.destinations: no valid destination, using the default one")
         return _default_destinations()
-
-    # Exactly one default: the first one marked, else the first in the list.
-    defaults = [d for d in result if d.default]
-    if len(defaults) != 1:
-        if len(defaults) > 1:
-            log.warning("config.destinations: several defaults, keeping %r", defaults[0].name)
-        keep = defaults[0] if defaults else result[0]
-        for d in result:
-            d.default = d is keep
     return result
 
 

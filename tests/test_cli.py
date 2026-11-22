@@ -53,13 +53,13 @@ def test_process_writes_pdfs_and_prints_them(samples, tmp_path, capsys, monkeypa
     assert line.startswith(str(dest)) and line.endswith("_Scans_001.pdf")
 
 
-def test_process_uses_configured_destination_name(samples, tmp_path, capsys, monkeypatch):
+def test_process_uses_the_configured_destination_template(samples, tmp_path, capsys, monkeypatch):
     from flypage import config
 
     from conftest import FakeEngine
 
-    dest = tmp_path / "invoices"
-    cfg = config.Config(destinations=[config.Destination(name="Factures", path=str(dest), default=True, template="%{dest}-%n")])
+    dest = tmp_path / "Factures"
+    cfg = config.Config(destinations=[config.Destination(path=str(dest), template="%{dest}-%n")])
     config.save(cfg)
     monkeypatch.setattr("flypage.pipeline.get_engine", lambda name: FakeEngine())
     assert main(["process", str(samples.png()), "--dest", str(dest)]) == 0

@@ -23,7 +23,7 @@ def wait_until(condition, timeout=15):
 
 @pytest.fixture
 def dest(tmp_path):
-    return Destination(name="Invoices", path=str(tmp_path / "out"), icon="x-office-spreadsheet-symbolic")
+    return Destination(path=str(tmp_path / "Invoices"), icon="x-office-spreadsheet-symbolic")
 
 
 @pytest.fixture

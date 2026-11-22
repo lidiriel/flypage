@@ -191,7 +191,7 @@ def scanner_session(memory, samples, tmp_path):
     samples.png("IMAG0001.png").rename(folder / "IMAG0001.png")
     samples.jpeg("IMAG0002.jpg").rename(folder / "IMAG0002.jpg")
     originals = ScannerFiles(import_files(memory, BOOK), is_mounted=lambda _p: True)
-    cfg = Config(destinations=[Destination(name="Docs", path=str(tmp_path / "out"), default=True)])
+    cfg = Config(destinations=[Destination(path=str(tmp_path / "out"))])
     return Session(cfg, originals.files(), engine=FakeEngine(), originals=originals), folder
 
 

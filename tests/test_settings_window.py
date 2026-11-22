@@ -22,9 +22,9 @@ def window():
     config.save(
         config.Config(
             destinations=[
-                Destination(name="Documents", path="~/Scans", default=True),
-                Destination(name="Invoices", path="~/Invoices"),
-                Destination(name="Medical", path="~/Medical"),
+                Destination(path="~/Documents"),
+                Destination(path="~/Invoices"),
+                Destination(path="~/Medical"),
             ]
         )
     )
@@ -62,20 +62,12 @@ def test_code_buttons_insert_at_the_end_before_any_click(window):
     assert editor.entry.get_text() == "scan-%3n"
 
 
-def test_move_and_default(window):
+def test_move_and_remove(window):
     page = window.pages["destinations"]
     page._move(0, 1)
     assert [d.name for d in saved(window).destinations] == ["Invoices", "Documents", "Medical"]
-
-    page._on_default_toggled(Gtk.CheckButton(active=True), window.cfg.destinations[2])
-    assert [d.default for d in saved(window).destinations] == [False, False, True]
-
-
-def test_removing_the_default_moves_it_to_the_first(window):
-    window.pages["destinations"]._remove(0)
-    dests = saved(window).destinations
-    assert [d.name for d in dests] == ["Invoices", "Medical"]
-    assert dests[0].default
+    page._remove(0)
+    assert [d.name for d in saved(window).destinations] == ["Documents", "Medical"]
 
 
 def test_last_language_cannot_be_unchecked(window):
@@ -107,17 +99,22 @@ def test_interface_language(window):
 
 def test_destination_dialog_validation():
     results = []
-    dialog = DestinationDialog(None, {"Invoices"}, "%Y_%{dest}", results.append)
-    assert not dialog.save_button.get_sensitive()  # no name, no folder
+    dialog = DestinationDialog(None, [Destination(path="~/Invoices")], "%Y_%{dest}", results.append)
+    assert not dialog.save_button.get_sensitive()  # no folder
+    assert not hasattr(dialog, "name_row")  # the name is the folder's
 
-    dialog.name_row.set_text("Invoices")
-    dialog.dest.path = "~/x"
+    dialog.dest.path = "~/Invoices/"
+    dialog._show_folder()
     dialog.check()
-    assert not dialog.save_button.get_sensitive()  # duplicate name
-    assert "error" in dialog.name_row.get_css_classes()
+    assert not dialog.save_button.get_sensitive()  # already a destination
+    assert "error" in dialog.folder_row.get_css_classes()
 
-    dialog.name_row.set_text("Taxes ")
+    dialog.dest.path = "~/Taxes"
+    dialog._show_folder()
+    dialog.check()
     assert dialog.save_button.get_sensitive()
+    assert dialog.folder_row.get_title() == "Taxes"
+    assert "Taxes" in dialog.template_editor.preview.get_subtitle()  # example uses the folder's name
 
     dialog.own_template.set_active(True)
     dialog.template_editor.entry.set_text("%q")
@@ -126,13 +123,13 @@ def test_destination_dialog_validation():
     assert dialog.save_button.get_sensitive()
 
     dialog._save(None)
-    assert results == [Destination(name="Taxes", path="~/x")]
+    assert results == [Destination(path="~/Taxes")]
 
 
 def test_destination_dialog_keeps_own_template():
     results = []
-    dest = Destination(name="A", path="/a", template="%Y")
-    dialog = DestinationDialog(dest, set(), "%n", results.append)
+    dest = Destination(path="/a", template="%Y")
+    dialog = DestinationDialog(dest, [], "%n", results.append)
     assert dialog.own_template.get_active()
     dialog.template_editor.entry.set_text("%Y-%m")
     dialog._save(None)
@@ -182,7 +179,7 @@ def test_advanced_ocr_options_are_saved(window):
 
 def test_destination_dialog_table_layout():
     got = []
-    dialog = DestinationDialog(Destination(name="Invoices", path="~/I"), set(), "%n", got.append)
+    dialog = DestinationDialog(Destination(path="~/I"), [], "%n", got.append)
     dialog.table_layout.set_active(True)
     dialog._save(None)
     assert got[0].table_layout

@@ -105,9 +105,10 @@ class PreviewPane(Gtk.Stack):
             self.window.grid.thumbnailer.get(item.path, thumbnails.PREVIEW, lambda t, it=item: self._set(it, t))
         self.title.set_label(item.name)
         lines = [ngettext("{n} page", "{n} pages", item.pages).format(n=item.pages)]
-        name = session.preview_name(item, self.window.cfg.default_destination())
+        first = self.window.cfg.destinations[0] if self.window.cfg.destinations else None
+        name = session.preview_name(item, first) if first else None
         if name:
-            lines.append(_("In “Default”: {name}").format(name=name))
+            lines.append(_("In “{folder}”: {name}").format(folder=first.name, name=name))
         if item.digital:
             lines.append(self.window.digital_text(1))
         elif session.passthrough(item):
@@ -333,7 +334,7 @@ class ProcessingWindow(Adw.ApplicationWindow):
             self.toast(_("Select files first, or drag them onto a folder."))
             return
         dialog = Gtk.FileDialog(title=_("Send to Folder"), accept_label=_("_Send Here"), modal=True)
-        start = self._last_folder or Gio.File.new_for_path(str(self.cfg.default_destination().expanded_path()))
+        start = self._last_folder or Gio.File.new_for_path(str(Path.home()))
         if start.query_exists(None):
             dialog.set_initial_folder(start)
         dialog.select_folder(self, None, self._on_folder_chosen, items)
@@ -350,7 +351,7 @@ class ProcessingWindow(Adw.ApplicationWindow):
 
     @staticmethod
     def folder_destination(path: Path) -> Destination:
-        return Destination(name=path.name or str(path), path=str(path), icon="folder-symbolic")
+        return Destination(path=str(path), icon="folder-symbolic")
 
     def _on_progress(self, _session, _done: int, _total: int, current: str) -> None:
         self._current = current

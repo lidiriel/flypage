@@ -59,19 +59,16 @@ class DestinationDialog(FormDialog):
     def __init__(
         self,
         dest: Destination | None,
-        taken_names: set[str],
+        others: list[Destination],
         global_template: str,
         on_save: Callable[[Destination], None],
     ) -> None:
         super().__init__(_("Edit Destination") if dest else _("New Destination"), on_save)
-        self.dest = dataclasses.replace(dest) if dest else Destination(name="", path="")
-        self.taken_names = taken_names
+        self.dest = dataclasses.replace(dest) if dest else Destination(path="")
+        self.others = others
 
+        # No name field: a destination is named after its folder.
         group = Adw.PreferencesGroup()
-        self.name_row = Adw.EntryRow(title=_("Name"), text=self.dest.name)
-        self.name_row.connect("changed", self.check)
-        group.add(self.name_row)
-
         self.folder_row = Adw.ActionRow(title=_("Folder"), use_markup=False)
         choose = Gtk.Button(label=_("Choose…"), valign=Gtk.Align.CENTER)
         choose.connect("clicked", self._choose_folder)
@@ -117,7 +114,15 @@ class DestinationDialog(FormDialog):
     # --- folder & icon ---------------------------------------------------------
 
     def _show_folder(self) -> None:
-        self.folder_row.set_subtitle(self.dest.path or _("No folder chosen"))
+        if self.dest.path:
+            self.folder_row.set_title(self.dest.name)
+            self.folder_row.set_subtitle(self.dest.path)
+        else:
+            self.folder_row.set_title(_("Folder"))
+            self.folder_row.set_subtitle(_("No folder chosen"))
+        if hasattr(self, "template_editor"):  # examples use the folder's name
+            self.template_editor.dest_name = self.dest.name or _("Documents")
+            self.template_editor._on_changed(self.template_editor.entry)
 
     def _choose_folder(self, _button) -> None:
         dialog = Gtk.FileDialog(title=_("Destination Folder"), modal=True)
@@ -178,15 +183,13 @@ class DestinationDialog(FormDialog):
     # --- validation ----------------------------------------------------------
 
     def validate(self) -> bool:
-        name = self.name_row.get_text().strip()
-        duplicate = name in self.taken_names
-        mark_error(self.name_row, duplicate)
-        self.name_row.set_tooltip_text(_("Another destination already has this name.") if duplicate else None)
+        duplicate = bool(self.dest.path) and any(d.same_folder(self.dest) for d in self.others)
+        mark_error(self.folder_row, duplicate)
+        self.folder_row.set_tooltip_text(_("This folder is already a destination.") if duplicate else None)
         template_ok = not self.own_template.get_active() or self.template_editor.valid
-        return bool(name) and not duplicate and bool(self.dest.path) and template_ok
+        return bool(self.dest.path) and not duplicate and template_ok
 
     def result(self) -> Destination:
-        self.dest.name = self.name_row.get_text().strip()
         self.dest.template = self.template_editor.template if self.own_template.get_active() else ""
         self.dest.table_layout = self.table_layout.get_active()
         return self.dest
