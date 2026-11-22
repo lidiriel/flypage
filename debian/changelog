@@ -1,3 +1,11 @@
+flypage (0.1.2) unstable; urgency=medium
+
+  * Compact processing window on small screens (e.g. 1366x768): it opens
+    to fit the screen, with smaller thumbnails, destination icons and
+    margins.
+
+ -- ludovic <ludovic@scilink.net>  Sun, 22 Nov 2026 20:46:45 +0100
+
 flypage (0.1.1) unstable; urgency=medium
 
   * Build on a clean system: add python3-gi-cairo to the build
