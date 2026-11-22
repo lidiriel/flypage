@@ -1,0 +1,98 @@
+# Build the Debian package in a clean Debian container.
+#
+# - Every push to master and every pull request: build, test, lintian
+#   (the .deb is kept as a workflow artifact for a few days).
+# - Pushing a tag vX.Y.Z: the same, then create the GitHub release for that
+#   tag with the .deb and its SHA-256 attached. The tag must match the
+#   version in debian/changelog. The release text is
+#   .github/release-notes/vX.Y.Z.md if that file exists, else the list of
+#   changes GitHub generates.
+# - "Run workflow" button (Actions tab): build an existing tag and attach the
+#   .deb to its release, e.g. for a tag pushed before this workflow existed.
+
+name: Debian package
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and release (e.g. v0.1.1)"
+        required: true
+
+permissions:
+  contents: write  # to create the release and upload its files
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      # The tag being released, if any: pushed tag or the button's input.
+      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || '' }}
+    steps:
+      - name: Install the build tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git build-essential devscripts lintian
+
+      - name: Check out the code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          path: src  # dpkg-buildpackage writes the .deb next to it, in the workspace
+
+      - name: Check that the tag matches debian/changelog
+        if: env.RELEASE_TAG != ''
+        working-directory: src
+        run: |
+          version="$(dpkg-parsechangelog -S Version)"
+          if [ "v$version" != "$RELEASE_TAG" ]; then
+            echo "::error::tag $RELEASE_TAG but debian/changelog says $version"
+            exit 1
+          fi
+
+      - name: Install the build dependencies (debian/control)
+        run: apt-get build-dep -y ./src
+
+      - name: Build the package (runs the tests)
+        working-directory: src
+        run: dpkg-buildpackage -us -uc -b
+
+      - name: Lintian
+        run: lintian --info --fail-on warning flypage_*.changes
+
+      - name: Collect the package
+        run: |
+          mkdir dist
+          mv flypage_*_all.deb dist/
+          cd dist && sha256sum flypage_*_all.deb > "$(ls flypage_*_all.deb).sha256"
+          ls -l
+
+      - name: Keep the package as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flypage-deb
+          path: dist/*
+
+      - name: Find the release text
+        id: notes
+        if: env.RELEASE_TAG != ''
+        run: |
+          notes="src/.github/release-notes/$RELEASE_TAG.md"
+          if [ -f "$notes" ]; then echo "path=$notes" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Create the release and attach the package
+        if: env.RELEASE_TAG != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Flypage ${{ env.RELEASE_TAG }}
+          files: dist/*
+          fail_on_unmatched_files: true
+          body_path: ${{ steps.notes.outputs.path }}
+          generate_release_notes: ${{ steps.notes.outputs.path == '' }}

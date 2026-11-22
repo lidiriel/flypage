@@ -2,8 +2,11 @@
 
 import pytest
 
-import flypage.ui  # noqa: F401
-from gi.repository import Adw, Gdk, Gtk
+try:
+    import flypage.ui  # noqa: F401  (needs GTK 4 and libadwaita)
+    from gi.repository import Adw, Gdk, Gtk
+except (ImportError, ValueError) as err:  # not installed, e.g. on a package build machine
+    pytest.skip(f"GTK 4 not available: {err}", allow_module_level=True)
 
 # init_check() can return True with no display at all: also check there is one.
 if not Gtk.init_check() or Gdk.Display.get_default() is None:

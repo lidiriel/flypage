@@ -1,3 +1,12 @@
+flypage (0.1.1) unstable; urgency=medium
+
+  * Build on a clean system: add python3-gi-cairo to the build
+    dependencies, and skip the window tests when GTK 4 is not installed.
+  * GitHub Actions workflow: build, test and lintian on every push; a
+    pushed vX.Y.Z tag publishes a GitHub release with the .deb.
+
+ -- ludovic <ludovic@scilink.net>  Sun, 22 Nov 2026 18:30:00 +0100
+
 flypage (0.1.0) unstable; urgency=medium
 
   * Initial release.
