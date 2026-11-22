@@ -3,7 +3,7 @@
 import pytest
 
 import flypage.ui  # noqa: F401
-from gi.repository import Adw, Gdk, GLib, Gtk
+from gi.repository import Adw, Gdk, Gtk
 
 # init_check() can return True with no display at all: also check there is one.
 if not Gtk.init_check() or Gdk.Display.get_default() is None:
@@ -16,7 +16,7 @@ from test_session import wait_until  # noqa: E402
 from flypage import config  # noqa: E402
 from flypage.config import Config, Destination  # noqa: E402
 from flypage.model import QUEUED  # noqa: E402
-from flypage.session import ALL_SAME, PER_FILE, Session  # noqa: E402
+from flypage.session import Session  # noqa: E402
 from flypage.ui.thumbnail_grid import drag_payload, parse_payload  # noqa: E402
 from flypage.ui.processing_window import ProcessingWindow  # noqa: E402
 
@@ -30,6 +30,7 @@ def cfg(tmp_path):
         ]
     )
     c.naming.template = "%{dest}_%n"
+    c.ocr.languages = ["eng", "fra"]
     config.save(c)
     return c
 
@@ -37,7 +38,7 @@ def cfg(tmp_path):
 @pytest.fixture
 def window(cfg, samples):
     files = [samples.png(f"s{i}.png", f"Page {i}") for i in range(4)]
-    session = Session(cfg, files, engine=FakeEngine(), sort_mode=PER_FILE)
+    session = Session(cfg, files, engine=FakeEngine())
     win = ProcessingWindow(session, "Test")
     yield win
     session.cancel()
@@ -57,30 +58,32 @@ def test_payload_round_trip(window):
     assert parse_payload(42) is None
 
 
-def test_message_and_buttons_follow_the_selection(window):
+def test_message_and_delete_follow_the_selection(window):
     assert "4 files from Test" in window.message.get_label()
-    assert not window.chain_action.get_enabled() and not window.delete_action.get_enabled()
+    assert not window.delete_action.get_enabled()
     select(window, 0)
-    assert window.delete_action.get_enabled() and not window.chain_action.get_enabled()
+    assert window.delete_action.get_enabled()
     select(window, 0, 2)
-    assert window.chain_action.get_enabled()
+    assert window.preview.get_visible_child_name() == "multi"
 
 
-def test_chain_keeps_the_chain_selected(window):
-    select(window, 0, 2)
-    window.activate_action("win.chain")
-    a, c = window.session.items[0], window.session.items[1]
-    assert a.chain and a.chain == c.chain
-    assert window.grid.selected() == [a, c]
-    assert window.preview.title.get_label() == "Chain 1"
+def test_defaults_of_the_toolbar(window):
+    assert window.convert.get_active() and window.session.convert_images
+    assert window.transfer.get_active_name() == "move" and not window.session.copy
+    assert window.language.get_selected() == 0 and window.session.languages == ["eng"]
+    assert window.language_choices == [["eng"], ["fra"], ["eng", "fra"]]  # last: all languages
 
 
-def test_unchain_from_menu_action(window):
-    select(window, 0, 1)
-    window.activate_action("win.chain")
-    item = window.session.items[0]
-    window.activate_action("win.unchain", GLib.Variant.new_int32(item.id))
-    assert item.chain == 0
+def test_toolbar_changes_the_session(window):
+    window.transfer.set_active_name("copy")
+    assert window.session.copy
+    window.language.set_selected(2)
+    assert window.session.languages == ["eng", "fra"]
+    select(window, 0)
+    window.convert.set_active(False)
+    assert not window.session.convert_images
+    assert "without OCR" in window.preview.details.get_label()
+    assert "Default”: Documents_1.png" in window.preview.details.get_label()
 
 
 def test_drop_sends_and_unselects(window, cfg):
@@ -93,23 +96,38 @@ def test_drop_sends_and_unselects(window, cfg):
     assert [p.name for p in window.session.outputs()] == ["Invoices_1.pdf"]
 
 
-def test_click_with_empty_selection_in_per_file_mode_does_nothing(window, cfg):
+def test_click_with_empty_selection_does_nothing(window, cfg):
     window.destinations.emit("send", cfg.destinations[0], None)
     assert not window.session.busy
 
 
-def test_mode_toggle_is_saved(window):
-    window.mode.set_active_name(ALL_SAME)
-    assert window.session.sort_mode == ALL_SAME
-    assert config.load().processing.sort_mode == ALL_SAME
-
-
-def test_all_same_then_summary(window, cfg):
-    window.mode.set_active_name(ALL_SAME)
-    window.destinations.emit("send", window.destinations.buttons[0].dest, [window.session.items[0].id])
+def test_send_all_then_summary(window, cfg):
+    window.destinations.emit("send", window.destinations.buttons[0].dest, [i.id for i in window.session.items])
     wait_until(lambda: window.stack.get_visible_child_name() == "summary")
     assert window.summary.get_title() == "4 searchable PDFs created"
     assert "closes in 10 seconds" in window.summary.get_description()
+
+
+def test_summary_counts_images_sent_without_ocr(window, cfg):
+    window.convert.set_active(False)
+    window.destinations.emit("send", cfg.destinations[1], [i.id for i in window.session.items])
+    wait_until(lambda: window.stack.get_visible_child_name() == "summary")
+    assert window.summary.get_title() == "4 files sent"
+    assert sorted(p.name for p in window.session.outputs())[0] == "Invoices_1.png"
+
+
+def test_other_folder(window, tmp_path):
+    folder = tmp_path / "Elsewhere"
+    dest = window.folder_destination(folder)
+    assert (dest.name, dest.path) == ("Elsewhere", str(folder))
+    window.send(window.session.items[:1], dest)
+    wait_until(lambda: not window.session.busy)
+    assert [p.name for p in window.session.outputs()] == ["Elsewhere_1.pdf"]
+
+
+def test_other_folder_with_nothing_selected_asks_nothing(window):
+    window.destinations.emit("choose", None)
+    assert window.get_visible_dialog() is None
 
 
 def test_delete(window):
@@ -119,7 +137,7 @@ def test_delete(window):
 
 
 def test_ocr_error_is_shown_not_raised(window, cfg):
-    window.session.cfg.ocr.languages = ["klingon"]
+    window.session.languages = ["klingon"]
     select(window, 0)
     window.destinations.emit("send", cfg.destinations[0], None)
     assert window.get_visible_dialog() is not None
@@ -149,8 +167,7 @@ def test_report_goes_to_the_daemon_once(window, cfg, capsys, monkeypatch):
 
     app = FakeApp(report_to_daemon=True)
     monkeypatch.setattr(window, "get_application", lambda: app)
-    window.mode.set_active_name(ALL_SAME)
-    window.destinations.emit("send", cfg.destinations[1], [window.session.items[0].id])
+    window.destinations.emit("send", cfg.destinations[1], [i.id for i in window.session.items])
     wait_until(lambda: window.stack.get_visible_child_name() == "summary")
     window._really_close()  # closing after the end does not report twice
     out = capsys.readouterr().out
@@ -172,3 +189,40 @@ def test_bring_to_front_never_fails(window):
     from flypage.ui.activation import bring_to_front
 
     bring_to_front(window)  # on Broadway/Wayland: just present()
+
+
+def test_time_left_wording():
+    from flypage.ui.processing_window import time_left
+
+    assert time_left(3) == "about 5 s left"
+    assert time_left(41) == "about 45 s left"
+    assert time_left(150) == "about 2 min left"
+    assert time_left(2, overdue=True) == "almost done…"
+
+
+def test_progress_bar_and_ring_while_running(cfg, samples):
+    from conftest import SlowEngine
+
+    session = Session(cfg, [samples.png("a.png"), samples.png("b.png")], engine=SlowEngine())
+    win = ProcessingWindow(session, "Test")
+    try:
+        a, b = session.items
+        win.send([a, b], cfg.destinations[0])
+        wait_until(lambda: a.progress >= 0 or b.progress >= 0)
+        assert win.update_progress()
+        assert "0 / 2 pages" in win.progress.get_text() and "left" in win.progress.get_text()
+    finally:
+        session.cancel()
+        wait_until(lambda: not session.busy)
+        win.destroy()
+
+
+def test_preview_says_a_digital_pdf_gets_no_ocr(cfg, samples):
+    session = Session(cfg, [samples.digital_pdf()], engine=FakeEngine())
+    win = ProcessingWindow(session, "Test")
+    try:
+        win.grid.selection.select_item(0, True)
+        assert "already has text" in win.preview.details.get_label()
+    finally:
+        session.cancel()
+        win.destroy()

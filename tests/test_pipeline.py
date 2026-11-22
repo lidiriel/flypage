@@ -18,6 +18,7 @@ from flypage.pipeline import Document, Pipeline
 def cfg():
     c = Config()
     c.naming.template = "%{dest}_%2n"
+    c.ocr.languages = ["eng", "fra"]
     return c
 
 
@@ -54,6 +55,38 @@ def test_chain_merges_in_order(cfg, fake_engine, samples, out):
     assert result.ok
     assert pages_of(result.output) == 4
     assert fake_engine.calls[0][2] == 4
+
+
+def test_image_passes_through_without_conversion(cfg, fake_engine, samples, out):
+    jpg, pdf = samples.jpeg("IMAG0001.JPG"), samples.pdf()
+    docs = [Document([jpg], out, convert_images=False), Document([pdf], out, convert_images=False)]
+    with Pipeline(cfg, fake_engine, remove_sources=True) as pipeline:
+        assert pipeline.output_name(docs[0]) == "Invoices_01.jpg"
+        image, searchable = pipeline.run(docs)
+    assert image.output.name == "Invoices_01.jpg" and searchable.output.name == "Invoices_02.pdf"
+    assert len(fake_engine.calls) == 1  # a PDF always gets OCR
+    assert not jpg.exists() and not pdf.exists()
+
+
+def test_passthrough_refuses_what_is_not_an_image(cfg, fake_engine, samples, out):
+    bad = samples.root / "bad.jpg"
+    bad.write_bytes(b"not an image")
+    [result] = run(cfg, fake_engine, [Document([bad], out, convert_images=False)])
+    assert not result.ok and "unsupported" in result.error
+    assert not out.exists() or list(out.iterdir()) == []
+
+
+def test_document_languages_and_removal_override_the_pipeline(cfg, fake_engine, samples, out):
+    png = samples.png()
+    [result] = run(cfg, fake_engine, [Document([png], out, languages=["fra"], remove_sources=False)],
+                   remove_sources=True)  # fmt: skip
+    assert result.ok and png.exists()
+    assert fake_engine.calls[0][1] == ["fra"]
+
+
+def test_document_languages_are_checked(cfg, fake_engine, samples, out):
+    with Pipeline(cfg, fake_engine) as pipeline, pytest.raises(OcrError):
+        pipeline.submit(Document([samples.png()], out, languages=["klingon"]))
 
 
 def test_transparent_png_is_flattened(cfg, fake_engine, samples, out):
@@ -241,3 +274,68 @@ def test_invalid_output_with_wrong_pages_is_still_an_error(tmp_path, samples, mo
     monkeypatch.setattr(token, "run", fake_run)
     with pytest.raises(OcrError, match="exit code 4"):
         t.TesseractEngine().recognise(src, dst, ["eng"], token)
+
+
+def test_ocr_options_reach_the_engine(cfg, fake_engine, samples, out):
+    cfg.ocr.rotate_pages = True
+    [result] = run(cfg, fake_engine, [Document([samples.png()], out, table_layout=True)])
+    assert result.ok and result.ocr_seconds > 0
+    assert fake_engine.options.rotate_pages and fake_engine.options.table_layout and not fake_engine.options.clean
+
+
+def test_physical_cores_counts_cores_not_threads(tmp_path, monkeypatch):
+    import flypage.pipeline as pipeline
+
+    block = "processor\t: {n}\nphysical id\t: 0\ncore id\t\t: {core}\n\n"
+    text = "".join(block.format(n=n, core=n % 2) for n in range(4))  # 2 cores, 4 threads
+    real_read = pipeline.Path.read_text
+    monkeypatch.setattr(pipeline.Path, "read_text",
+                        lambda self, *a, **k: text if str(self) == "/proc/cpuinfo" else real_read(self, *a, **k))  # fmt: skip
+    assert pipeline.physical_cores() == 2
+
+
+def test_tesseract_command_line(tmp_path):
+    from flypage.ocr import OcrOptions
+
+    engine = TesseractEngine()
+    cmd = engine.command(tmp_path / "a.pdf", tmp_path / "b.pdf", ["fra"], OcrOptions(table_layout=True))
+    assert cmd[cmd.index("--tesseract-downsample-above") + 1] == "2600"
+    assert cmd[cmd.index("--tesseract-pagesegmode") + 1] == "6"
+    assert "--rotate-pages" not in cmd and "--clean" not in cmd
+    assert cmd[-2:] == [str(tmp_path / "a.pdf"), str(tmp_path / "b.pdf")]
+    cmd = engine.command(tmp_path / "a.pdf", tmp_path / "b.pdf", ["fra"], OcrOptions(rotate_pages=True, clean=True))
+    assert ("--rotate-pages" in cmd) == engine.can_rotate()
+    assert ("--clean" in cmd) == engine.can_clean()
+
+
+def test_tessdata_prefix_without_configs_is_reported(tmp_path, monkeypatch):
+    engine = TesseractEngine()
+    if not engine.available() or "eng" not in engine.languages():
+        pytest.skip("Tesseract with eng not installed")
+    monkeypatch.setenv("TESSDATA_PREFIX", str(tmp_path))
+    with pytest.raises(OcrError, match="configs"):
+        engine.check(["eng"])
+    (tmp_path / "configs").mkdir()
+    (tmp_path / "configs" / "hocr").write_text("tessedit_create_hocr 1\n")
+    engine.check(["eng"])
+
+
+def test_text_detection(samples):
+    from flypage.pipeline import pdf_has_text
+
+    assert pdf_has_text(samples.digital_pdf("a.pdf"))
+    assert pdf_has_text(samples.digital_pdf("b.pdf", in_form=True))  # text layer of an OCR'd PDF
+    assert not pdf_has_text(samples.pdf("scan.pdf"))  # image only: a scan
+    assert not pdf_has_text(samples.png())  # not a PDF at all
+
+
+def test_digital_pdf_is_filed_without_ocr(cfg, fake_engine, samples, out):
+    digital, scan = samples.digital_pdf(), samples.pdf()
+    docs = [Document([digital], out), Document([scan], out)]
+    with Pipeline(cfg, fake_engine, remove_sources=True) as pipeline:
+        assert pipeline.output_name(docs[0]) == "Invoices_01.pdf"
+        filed, ocred = pipeline.run(docs)
+    assert filed.ok and filed.ocr_seconds == 0 and filed.output.name == "Invoices_01.pdf"
+    assert ocred.ok and ocred.ocr_seconds > 0
+    assert len(fake_engine.calls) == 1  # only the scan
+    assert not digital.exists()  # moved

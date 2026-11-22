@@ -1,8 +1,9 @@
-"""Grid of scans with chain badges, drag-and-drop and multi-selection (PLAN.md §6.3)."""
+"""Grid of scans with drag-and-drop and multi-selection (PLAN.md §6.3)."""
 
 from __future__ import annotations
 
 import logging
+import math
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -18,7 +19,6 @@ from flypage.session import Session
 log = logging.getLogger(__name__)
 
 DRAG_PREFIX = "flypage-files:"  # drag content: "flypage-files:3,4,7"
-CHAIN_COLOURS = 6  # .chain-0 … .chain-5 in style.css
 CELL_SIZE = 168
 
 
@@ -93,6 +93,43 @@ class Thumbnailer:
         self._pool.shutdown(wait=False, cancel_futures=True)
 
 
+class ProgressRing(Gtk.Overlay):
+    """A queued file's estimated OCR progress: a ring with the percentage inside."""
+
+    SIZE = 56
+    LINE = 5
+
+    def __init__(self) -> None:
+        super().__init__(halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        self.fraction = 0.0
+        self.area = Gtk.DrawingArea(content_width=self.SIZE, content_height=self.SIZE)
+        self.area.set_draw_func(self._draw)
+        self.set_child(self.area)
+        self.label = Gtk.Label(css_classes=["ring-label"], halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        self.add_overlay(self.label)
+
+    def set_fraction(self, fraction: float) -> None:
+        self.fraction = max(0.0, min(1.0, fraction))
+        self.label.set_label(_("{percent} %").format(percent=int(self.fraction * 100)))
+        self.area.queue_draw()
+
+    def _draw(self, _area, cr, width: int, height: int) -> None:
+        x, y = width / 2, height / 2
+        radius = min(width, height) / 2 - self.LINE / 2
+        cr.set_source_rgba(0, 0, 0, 0.6)  # dark disc: readable over any scan
+        cr.arc(x, y, radius + self.LINE / 2, 0, 2 * math.pi)
+        cr.fill()
+        cr.set_line_width(self.LINE)
+        cr.set_source_rgba(1, 1, 1, 0.25)
+        cr.arc(x, y, radius - 1, 0, 2 * math.pi)
+        cr.stroke()
+        if self.fraction > 0:
+            cr.set_source_rgba(0.21, 0.52, 0.89, 1)  # libadwaita blue
+            start = -math.pi / 2
+            cr.arc(x, y, radius - 1, start, start + 2 * math.pi * self.fraction)
+            cr.stroke()
+
+
 class ThumbnailCell(Gtk.Box):
     def __init__(self, grid: ThumbnailGrid) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=4, css_classes=["thumb-cell"])
@@ -104,14 +141,17 @@ class ThumbnailCell(Gtk.Box):
         self.picture.set_size_request(CELL_SIZE, CELL_SIZE)
         overlay = Gtk.Overlay(child=self.picture)
         self.spinner = Adw.Spinner(halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, width_request=32, height_request=32)
-        self.chain_badge = Gtk.Label(halign=Gtk.Align.START, valign=Gtk.Align.START, css_classes=["chain-badge"])
         self.dest_badge = Gtk.Image(halign=Gtk.Align.END, valign=Gtk.Align.START, pixel_size=24, css_classes=["osd", "badge"])
         self.pages_badge = Gtk.Label(halign=Gtk.Align.END, valign=Gtk.Align.END, css_classes=["osd", "badge", "caption"])
         self.error_badge = Gtk.Image(
             icon_name="dialog-error-symbolic", halign=Gtk.Align.START, valign=Gtk.Align.END,
             pixel_size=24, css_classes=["error-badge"],
         )  # fmt: skip
-        for widget in (self.spinner, self.chain_badge, self.dest_badge, self.pages_badge, self.error_badge):
+        self.ring = ProgressRing()
+        self.waiting = Gtk.Label(
+            label=_("Waiting"), halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, css_classes=["osd", "badge", "caption"]
+        )
+        for widget in (self.spinner, self.ring, self.waiting, self.dest_badge, self.pages_badge, self.error_badge):
             overlay.add_overlay(widget)
         self.append(overlay)
         self.label = Gtk.Label(ellipsize=Pango.EllipsizeMode.MIDDLE, max_width_chars=18, css_classes=["caption"])
@@ -137,7 +177,7 @@ class ThumbnailCell(Gtk.Box):
         self.set_tooltip_text(item.name)
         self.picture.set_paintable(None)
         self.grid.thumbnailer.get(item.path, thumbnails.THUMBNAIL, lambda t, it=item: self._set_texture(it, t))
-        for prop in ("state", "chain", "error", "dest-icon"):
+        for prop in ("state", "error", "dest-icon", "progress"):
             self._handlers.append(item.connect(f"notify::{prop}", lambda *_args: self._update()))
         self._update()
 
@@ -163,16 +203,13 @@ class ThumbnailCell(Gtk.Box):
         if item is None:
             return
         queued = item.state == QUEUED
-        self.spinner.set_visible(queued or self.picture.get_paintable() is None)
+        self.spinner.set_visible(not queued and self.picture.get_paintable() is None)
         self.picture.set_opacity(0.35 if queued else 1.0)
-
-        self.chain_badge.set_visible(bool(item.chain))
-        for i in range(CHAIN_COLOURS):
-            self.chain_badge.remove_css_class(f"chain-{i}")
-        if item.chain:
-            self.chain_badge.set_label(str(item.chain))
-            self.chain_badge.add_css_class(f"chain-{item.chain % CHAIN_COLOURS}")
-            self.chain_badge.set_tooltip_text(_("Chain {number}: merged into one PDF").format(number=item.chain))
+        running = queued and item.progress >= 0
+        self.ring.set_visible(running)
+        if running:
+            self.ring.set_fraction(item.progress)
+        self.waiting.set_visible(queued and not running)
 
         self.dest_badge.set_visible(queued and bool(item.dest_icon))
         if queued:
@@ -266,9 +303,9 @@ class ThumbnailGrid(Gtk.ScrolledWindow):
         return [i for i in items if i is not None and i.sortable]
 
     def drag_set(self, item: ImportedFile) -> list[ImportedFile]:
-        """Files dragged from ``item``: the selection if it contains it, plus whole chains."""
+        """Files dragged from ``item``: the selection if it contains it, else ``item`` alone."""
         selected = self.selected()
-        return self.session.expand(selected if item in selected else [item])
+        return selected if item in selected else [item]
 
     def select(self, items: list[ImportedFile]) -> None:
         """Select exactly ``items``."""
@@ -285,15 +322,10 @@ class ThumbnailGrid(Gtk.ScrolledWindow):
                 self.selection.unselect_item(position)
 
     def show_menu(self, cell: ThumbnailCell, item: ImportedFile, x: float, y: float) -> None:
-        menu = Gio.Menu()
-        if item.sortable and item.chain:
-            entry = Gio.MenuItem.new(_("Remove from Chain"), None)
-            entry.set_action_and_target_value("win.unchain", GLib.Variant.new_int32(item.id))
-            menu.append_item(entry)
-        if item.sortable:
-            menu.append(_("Delete"), "win.delete")
-        if menu.get_n_items() == 0:
+        if not item.sortable:
             return
+        menu = Gio.Menu()
+        menu.append(_("Delete"), "win.delete")
         found, position = self.session.store.find(item)
         if found and not self.selection.is_selected(position):
             self.selection.select_item(position, True)  # the menu acts on what was right-clicked

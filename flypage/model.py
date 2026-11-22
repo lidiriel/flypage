@@ -21,14 +21,17 @@ class ImportedFile(GObject.Object):
 
     state = GObject.Property(type=str, default=IDLE)
     error = GObject.Property(type=str, default="")
-    chain = GObject.Property(type=int, default=0)  # 0 = not chained
     dest_icon = GObject.Property(type=str, default="")  # destination icon while queued
+    # While queued: -1 = waiting for a worker, else the estimated 0…1 of its OCR.
+    progress = GObject.Property(type=float, default=-1.0)
 
-    def __init__(self, path: Path, pages: int = 1) -> None:
+    def __init__(self, path: Path, pages: int = 1, digital: bool = False) -> None:
         super().__init__()
         self.id = next(_ids)
         self.path = path
         self.pages = pages
+        self.is_pdf = path.suffix.lower() == ".pdf"
+        self.digital = digital  # a PDF that already has text: filed without OCR
 
     @property
     def name(self) -> str:
@@ -36,8 +39,8 @@ class ImportedFile(GObject.Object):
 
     @property
     def sortable(self) -> bool:
-        """Can be chained, moved, deleted or sent (not while its OCR is queued)."""
+        """Can be moved, deleted or sent (not while its OCR is queued)."""
         return self.state != QUEUED
 
     def __repr__(self) -> str:
-        return f"<ImportedFile {self.id} {self.name} {self.state} chain={self.chain}>"
+        return f"<ImportedFile {self.id} {self.name} {self.state}>"

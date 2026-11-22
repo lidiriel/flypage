@@ -119,7 +119,9 @@ class Daemon(Gio.Application):
         if report and report.get("created"):
             self.send_notification(
                 f"done-{job.disk.object_path}",
-                notifications.summary(report["created"], report.get("folders", []), "app.open-folder"),
+                notifications.summary(
+                    report["created"], report.get("folders", []), "app.open-folder", report.get("pdfs")
+                ),
             )
 
     def _open_window(self, staging: Path) -> Gio.Subprocess:

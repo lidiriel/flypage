@@ -25,7 +25,23 @@ MAX_BUTTONS = 3  # notification servers show few buttons
 
 def report_line(outputs: list[Path]) -> str:
     folders = list(dict.fromkeys(str(p.parent) for p in outputs))  # unique, in order
-    return REPORT_PREFIX + json.dumps({"created": len(outputs), "folders": folders})
+    return REPORT_PREFIX + json.dumps({"created": len(outputs), "pdfs": count_pdfs(outputs), "folders": folders})
+
+
+def count_pdfs(outputs: list[Path]) -> int:
+    return sum(1 for p in outputs if p.suffix.lower() == ".pdf")
+
+
+def title(created: int, pdfs: int | None = None) -> str:
+    """ "3 searchable PDFs created", or with images sent without OCR "4 files sent, 3 searchable PDFs"."""
+    if pdfs is None or pdfs == created:
+        return ngettext("{n} searchable PDF created", "{n} searchable PDFs created", created).format(n=created)
+    sent = ngettext("{n} file sent", "{n} files sent", created).format(n=created)
+    if pdfs == 0:
+        return sent
+    return _("{sent}, {pdfs}").format(
+        sent=sent, pdfs=ngettext("{n} searchable PDF", "{n} searchable PDFs", pdfs).format(n=pdfs)
+    )
 
 
 def parse_report(stdout: str) -> dict | None:
@@ -38,11 +54,11 @@ def parse_report(stdout: str) -> dict | None:
     return None
 
 
-def summary(created: int, folders: list[str], open_action: str | None = None) -> Gio.Notification:
+def summary(
+    created: int, folders: list[str], open_action: str | None = None, pdfs: int | None = None
+) -> Gio.Notification:
     """The "N searchable PDFs created" notification; ``open_action`` adds one *Open* button per folder."""
-    notification = Gio.Notification.new(
-        ngettext("{n} searchable PDF created", "{n} searchable PDFs created", created).format(n=created)
-    )
+    notification = Gio.Notification.new(title(created, pdfs))
     notification.set_body(", ".join(contract_home(f) for f in folders))
     notification.set_icon(Gio.ThemedIcon.new("scanner-symbolic"))
     if open_action and folders:

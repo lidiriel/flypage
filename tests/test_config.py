@@ -44,7 +44,6 @@ def test_round_trip():
         ],
     )
     cfg.ocr.languages = ["fra"]
-    cfg.processing.sort_mode = "all_same"
     config.save(cfg)
     assert config.load() == cfg
 
@@ -77,7 +76,7 @@ def test_bad_values_fall_back_one_by_one(caplog):
         engine = "magic"
         languages = ["fra"]
         [processing]
-        sort_mode = 3
+        sort_mode = "all_same"
         [naming]
         template = "%{dest}"
         """,
@@ -87,15 +86,15 @@ def test_bad_values_fall_back_one_by_one(caplog):
     assert cfg.ui_language == "system"
     assert cfg.ocr.engine == "tesseract"
     assert cfg.ocr.languages == ["fra"]  # the valid value next to a bad one is kept
-    assert cfg.processing.sort_mode == "per_file"
     assert cfg.naming.template == "%{dest}"
     assert "colour: unknown setting" in caplog.text
+    assert "processing" not in caplog.text  # the old sort mode is dropped quietly
 
 
 @pytest.mark.parametrize("languages", ["[]", '"eng"', '["eng", 3]', '[""]'])
 def test_invalid_language_lists(languages):
     cfg = config.from_dict(config.tomllib.loads(f"[ocr]\nlanguages = {languages}"))
-    assert cfg.ocr.languages == ["eng", "fra"]
+    assert cfg.ocr.languages == config.default_languages()
 
 
 def test_bool_is_not_accepted_for_strings_and_vice_versa():
@@ -189,3 +188,26 @@ def test_easyocr_falls_back_to_tesseract(caplog):
     assert cfg.ocr.engine == "tesseract"
     assert cfg.ocr.languages == ["fra"]
     assert "EasyOCR is no longer supported" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "env, expected",
+    [({"LANGUAGE": "fr:en"}, ["fra"]), ({"LANG": "de_DE.UTF-8"}, ["deu"]), ({"LANG": "C.UTF-8"}, ["eng"]),
+     ({"LANG": "xx_YY"}, ["eng"]), ({}, ["eng"])],
+)  # fmt: skip
+def test_default_ocr_language_is_the_desktop_one(monkeypatch, env, expected):
+    for var in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
+        monkeypatch.delenv(var, raising=False)
+    for var, value in env.items():
+        monkeypatch.setenv(var, value)
+    assert config.default_languages() == expected
+
+
+def test_ocr_options_and_table_layout_round_trip():
+    cfg = Config(destinations=[Destination(name="Invoices", path="~/I", default=True, table_layout=True),
+                               Destination(name="Docs", path="~/D")])  # fmt: skip
+    cfg.ocr.rotate_pages = True
+    config.save(cfg)
+    assert config.load() == cfg
+    data = config.tomllib.loads(config.config_path().read_text())
+    assert "table_layout" not in data["destinations"][1]  # only written when set

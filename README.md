@@ -14,30 +14,81 @@ into folders and running OCR on them by hand takes time. With Flypage:
 1. You plug in the scanner. A small background service notices it, copies
    its files to a staging folder and opens the **processing window**.
 2. You sort the scans by dragging them onto a destination folder
-   (*Invoices*, *Medical*…). You can chain several scans into one
-   multi-page PDF, and delete the ones you don't want.
-3. Each document dropped on a folder is converted to PDF and sent through
-   OCR right away. A progress bar shows the work left.
-4. Once a PDF is written, its original can be deleted from the scanner's
-   memory. A notification lists the PDFs made, with buttons that open
-   their folders.
+   (*Invoices*, *Medical*…), or onto *Other Folder…* to pick any folder.
+   Several files dropped together still give one PDF each. A right-click
+   deletes the ones you don't want.
+3. Each file dropped on a folder is converted to PDF and sent through
+   OCR right away. A progress bar shows the pages done and the time left,
+   and each file being read shows its own progress ring (see
+   [Progress](#progress)).
+4. In *Move* mode (the default), once a PDF is written its original is
+   deleted from the scanner's memory; in *Copy* mode it stays there. A
+   notification lists the files made, with buttons that open their folders.
 
-Input files can be PNG, JPEG or PDF. The output is always a PDF with a
-text layer, named from a template you choose (e.g. `2026-11-21_Invoices_001.pdf`).
+The toolbar at the bottom of the window sets what the next drop does:
+*Images to PDF* (off: JPG and PNG files are filed as they are, without
+OCR, since OCR only works on PDF), *Move* or *Copy*, and the OCR language
+(the first one in Settings, another one, or all of them).
+
+Input files can be PNG, JPEG or PDF. The output is a PDF with a text
+layer (or the image itself when *Images to PDF* is off), named from a
+template you choose (e.g. `2026-11-21_Invoices_001.pdf`). A **digital PDF**,
+one that already contains text (made by office software, or already
+OCR'd), is filed as it is, without OCR: the preview says so.
 
 Everything else is set in the **Settings** window, opened from the system
 menu: scanner profiles (several scanners are possible), destination
-folders with their icons, the default destination, OCR languages, the
-file name template and the interface language. The interface is in
-English, with a French translation.
+folders with their icons, the default destination, OCR languages (in
+order: the first one is the window's default), optional OCR steps (see
+[OCR speed and options](#ocr-speed-and-options)), the file name template
+and the interface language. The interface is in English, with a French
+translation.
 
 OCR is done by [Tesseract](https://github.com/tesseract-ocr/tesseract)
 through [ocrmypdf](https://ocrmypdf.readthedocs.io/). EasyOCR was
 evaluated and dropped: on scanned documents Tesseract is as accurate or
-better and 10–60× faster (see [PLAN.md §7.1](PLAN.md)).
+better and 10–60× faster.
 
 Flypage runs as the logged-in user and needs no root rights. It targets
 Debian with a GTK 4 desktop.
+
+## OCR speed and options
+
+A full IRIScan page takes roughly 10–35 s of OCR, depending on the
+computer. Flypage is tuned for that:
+
+- Tesseract reads a copy of the page reduced to 2600 px
+  (`--tesseract-downsample-above 2600`); the PDF keeps the full image.
+  About 30 % faster with the same accuracy.
+- One document per **physical core** (not per hardware thread), each
+  Tesseract limited to one thread (`OMP_THREAD_LIMIT=1`).
+- A new configuration starts with the desktop's language only. Every
+  extra language used together slows OCR down and can make it pick the
+  wrong dictionary. The window's language list still offers the others,
+  and *All Languages*.
+
+Off by default, because they cost time:
+
+- **Straighten rotated pages** (Settings → OCR → Advanced; about 15 % more
+  time; needs the `osd` model of `tesseract-ocr-osd`).
+- **Clean pages before OCR** (same place; about 50 % more time; needs
+  `unpaper`). The image saved in the PDF is not changed.
+- **Tables**, per destination (e.g. *Invoices*): Tesseract reads tables row
+  by row (`--tesseract-pagesegmode 6`), so copied text keeps the rows
+  together. Worse on text laid out in columns.
+
+## Progress
+
+ocrmypdf only reports progress page by page, and a scan is usually one
+page, so the bar would otherwise sit empty and then jump to full. Flypage
+estimates instead: it measures how many seconds a page takes on this
+computer (a running average saved in `~/.local/state/flypage/ocr-speed.json`)
+and moves the bar by elapsed time against that estimate. A file being read
+never shows 100 % before it is really done. The bar reads e.g.
+*2 / 5 pages · about 1 min left · 2026-11-22_Invoices_003.pdf*. In the grid,
+each queued file shows *Waiting* or a ring with its own percentage. The
+first estimate (20 s per page) is a guess. After a few documents it
+matches the computer.
 
 ## How it works
 
@@ -52,7 +103,7 @@ Debian with a GTK 4 desktop.
  flypage import-window ──► thumbnail grid, drag to a destination
         │
         ▼
- pipeline: image → PDF (img2pdf) → merge chains (pikepdf) → OCR (ocrmypdf + Tesseract)
+ pipeline: image → PDF (img2pdf) → OCR (ocrmypdf + Tesseract), one PDF per file
         │
         ▼
  PDF in the destination folder ──► original deleted on the scanner (now, or at the next plug)
@@ -81,6 +132,7 @@ flypage/
 │   ├── pending.py            deletions kept for a scanner that was unplugged too early
 │   │
 │   ├── session.py            what the processing window does, without the widgets
+│   ├── progress.py           OCR speed learned per computer, estimated progress and time left
 │   ├── model.py              objects shown in the thumbnail grid
 │   ├── thumbnails.py         first-page thumbnails, cached on disk
 │   ├── naming.py             output file names from a template (%Y-%m-%d_%{dest}_%3n)
@@ -93,7 +145,7 @@ flypage/
 │   └── ui/
 │       ├── settings_window.py    settings; every valid change is saved at once
 │       ├── processing_window.py  sort scans into folders, OCR progress
-│       ├── thumbnail_grid.py     grid with chain badges, drag-and-drop, multi-selection
+│       ├── thumbnail_grid.py     grid with drag-and-drop, multi-selection
 │       ├── destination_bar.py    row of destination icons to drop scans on
 │       ├── template_editor.py    file name template field with a live preview
 │       ├── dialogs.py            add/edit destination and scanner profile
@@ -197,7 +249,13 @@ Ways to make OCR more accurate, from cheapest to most expensive:
 `tessdata_best/fra.traineddata` (from
 github.com/tesseract-ocr/tessdata_best) is a little more accurate than
 Debian's model, but slower. You can try it without touching any code: put
-it in a folder and point `TESSDATA_PREFIX` there.
+it in a folder and point `TESSDATA_PREFIX` there. Tesseract then looks
+**only** in that folder, so also put there every other model you use
+(e.g. `eng`), `osd` if *Straighten rotated pages* is on, and a link to
+Tesseract's `configs` folder, without which OCR fails
+(`ln -s /usr/share/tesseract-ocr/5/tessdata/configs ~/.tesseract-ocr/`). The
+variable must be set where Flypage starts: in `~/.profile` (then log in
+again) for the daemon and the menu entry, not only in a terminal.
 
 ### Word lists and patterns
 
@@ -215,7 +273,3 @@ options above.
 
 On clean scans Tesseract already scored about 0 % errors. In practice,
 image quality and the options above matter more than the model.
-
-Speed improvements that have been measured but not yet built in (OCR on a
-smaller copy of the page, fewer languages, one worker per CPU core) are
-listed in PLAN.md, milestone 10.

@@ -8,7 +8,7 @@ from gi.repository import GLib
 from flypage.config import Config, Destination
 from flypage.model import FAILED, IDLE, QUEUED
 from flypage.importer import find_files
-from flypage.session import ALL_SAME, PER_FILE, Session
+from flypage.session import Session
 
 
 def wait_until(condition, timeout=15):
@@ -28,11 +28,12 @@ def dest(tmp_path):
 
 @pytest.fixture
 def make_session(samples):
-    def make(n=4, mode=PER_FILE, engine=None, remove_sources=True):
+    def make(n=4, engine=None, remove_sources=True):
         files = [samples.png(f"s{i}.png", f"Page {i}") for i in range(n)]
         cfg = Config()
         cfg.naming.template = "%{dest}_%n"
-        return Session(cfg, files, remove_sources=remove_sources, engine=engine or FakeEngine(), sort_mode=mode)
+        cfg.ocr.languages = ["eng", "fra"]
+        return Session(cfg, files, remove_sources=remove_sources, engine=engine or FakeEngine())
 
     return make
 
@@ -52,75 +53,70 @@ def test_find_files_skips_hidden_and_unsupported(tmp_path):
     ]
 
 
-def test_chain_gathers_files_and_toggles(make_session):
-    s = make_session(5)
-    a, b, c, d, e = s.items
-    s.toggle_chain([b, d])
-    assert b.chain and b.chain == d.chain
-    assert names(s) == ["s0.png", "s1.png", "s3.png", "s2.png", "s4.png"]  # d moved next to b
-
-    s.toggle_chain([d, b])  # exactly that chain again: unchain
-    assert b.chain == d.chain == 0
-
-
-def test_chaining_part_of_a_chain_dissolves_leftovers(make_session):
+def test_move_reorders(make_session):
     s = make_session(4)
     a, b, c, d = s.items
-    s.toggle_chain([a, b])
-    s.toggle_chain([b, c, d])
-    assert a.chain == 0  # alone in its old chain
-    assert b.chain == c.chain == d.chain != 0
-
-
-def test_single_file_cannot_be_chained(make_session):
-    s = make_session(2)
-    s.toggle_chain([s.items[0]])
-    assert s.items[0].chain == 0
-
-
-def test_remove_from_chain(make_session):
-    s = make_session(3)
-    a, b, c = s.items
-    s.toggle_chain([a, b, c])
-    s.remove_from_chain(b)
-    assert (a.chain, b.chain) == (c.chain, 0)
-    s.remove_from_chain(a)
-    assert c.chain == 0  # a chain of one is no chain
-
-
-def test_move_keeps_chains_together(make_session):
-    s = make_session(4)
-    a, b, c, d = s.items
-    s.toggle_chain([a, b])
-    s.move([a], before=None)  # dragging one chain member drags the chain
+    s.move([a, b], before=None)
     assert names(s) == ["s2.png", "s3.png", "s0.png", "s1.png"]
     s.move([d], before=c)
     assert names(s) == ["s3.png", "s2.png", "s0.png", "s1.png"]
 
 
-def test_per_file_sends_only_dragged_files_and_their_chain(make_session, dest):
+def test_each_file_is_its_own_document(make_session, dest):
     s = make_session(4)
     a, b, c, d = s.items
-    s.toggle_chain([b, c])
-    assert s.send([b], dest) == 1  # one document: the chain
-    assert (b.state, c.state, a.state) == (QUEUED, QUEUED, IDLE)
-    assert b.dest_icon == dest.icon
-    wait_until(lambda: not s.busy)
-    assert names(s) == ["s0.png", "s3.png"]
-    [result] = s.results
-    with pikepdf.open(result.output) as pdf:
-        assert len(pdf.pages) == 2
-    assert result.output.name == "Invoices_1.pdf"
-
-
-def test_all_same_sends_everything(make_session, dest):
-    s = make_session(3, mode=ALL_SAME)
     finished = []
     s.connect("finished", lambda _s: finished.append(True))
-    assert s.send([s.items[0]], dest) == 3
+    assert s.send([c, a], dest) == 2
+    assert (a.state, c.state, b.state) == (QUEUED, QUEUED, IDLE)
+    assert a.dest_icon == dest.icon
+    wait_until(lambda: not s.busy)
+    assert names(s) == ["s1.png", "s3.png"]
+    # Numbered in grid order, one page each.
+    assert {r.document.sources[0].name: r.output.name for r in s.results} == {
+        "s0.png": "Invoices_1.pdf", "s2.png": "Invoices_2.pdf",
+    }
+    for r in s.results:
+        with pikepdf.open(r.output) as pdf:
+            assert len(pdf.pages) == 1
+    s.send(s.items, dest)
     wait_until(lambda: finished)
-    assert s.items == []
-    assert sorted(p.name for p in s.outputs()) == ["Invoices_1.pdf", "Invoices_2.pdf", "Invoices_3.pdf"]
+
+
+def test_images_sent_as_they_are_when_conversion_is_off(make_session, dest, samples):
+    engine = FakeEngine()
+    s = make_session(1, engine=engine)
+    pdf = samples.pdf("doc.pdf")
+    s.store.append(type(s.items[0])(pdf, 1))
+    png, doc = s.items
+    s.convert_images = False
+    assert s.passthrough(png) and not s.passthrough(doc)
+    assert s.preview_name(png, dest) == "Invoices_1.png"
+    s.send([png, doc], dest)
+    wait_until(lambda: not s.busy)
+    out = sorted(p.name for p in s.outputs())
+    assert out == ["Invoices_1.png", "Invoices_2.pdf"]
+    assert len(engine.calls) == 1  # only the PDF went through OCR
+    assert not png.path.exists()  # moved
+
+
+def test_copy_keeps_the_originals(make_session, dest):
+    s = make_session(1)
+    s.copy = True
+    src = s.items[0].path
+    s.send(s.items, dest)
+    wait_until(lambda: not s.busy)
+    assert src.exists() and len(s.outputs()) == 1
+
+
+def test_languages_of_the_session_are_used(make_session, dest):
+    engine = FakeEngine()
+    s = make_session(1, engine=engine)
+    assert s.languages == ["eng", "fra"]  # the configured ones by default
+    s.languages = ["fra"]
+    s.send(s.items, dest)
+    wait_until(lambda: not s.busy)
+    assert engine.calls[0][1] == ["fra"]
 
 
 def test_originals_removed_only_when_asked(make_session, dest):
@@ -161,12 +157,10 @@ def test_progress_signal_reaches_the_main_thread(make_session, dest):
     wait_until(lambda: (2, 2) in seen)
 
 
-def test_queued_files_cannot_be_chained_moved_or_deleted(make_session, dest):
+def test_queued_files_cannot_be_moved_or_deleted(make_session, dest):
     s = make_session(3, engine=SlowEngine())
     a, b, c = s.items
     s.send([a], dest)
-    s.toggle_chain([a, b])
-    assert a.chain == 0
     assert s.delete([a]) == [] and a in s.items and a.path.exists()
     s.move([a], before=None)
     assert s.items[0] is a
@@ -180,16 +174,15 @@ def test_delete_removes_files_and_finishes_when_empty(make_session):
     finished = []
     s.connect("finished", lambda _s: finished.append(True))
     a, b = s.items
-    s.toggle_chain([a, b])
     assert s.delete([a]) == []
-    assert not a.path.exists() and b.chain == 0
+    assert not a.path.exists() and a not in s.items
     s.delete([b])
     assert finished == [True]
 
 
 def test_ocr_error_is_raised_on_send(make_session, dest):
     s = make_session(1)
-    s.cfg.ocr.languages = ["klingon"]
+    s.languages = ["klingon"]
     from flypage.ocr import OcrError
 
     with pytest.raises(OcrError):
@@ -200,10 +193,42 @@ def test_ocr_error_is_raised_on_send(make_session, dest):
 def test_preview_name_follows_the_sequence(make_session, dest):
     s = make_session(3)
     a, b, c = s.items
-    assert s.preview_name([a], dest) == "Invoices_1.pdf"
-    assert s.preview_name([a, b], dest) is None  # two documents: no single name
-    s.toggle_chain([b, c])
-    assert s.preview_name([b], dest) == "Invoices_1.pdf"  # the chain is one document
+    assert s.preview_name(a, dest) == "Invoices_1.pdf"
     s.send([a], dest)
-    assert s.preview_name([b], dest) == "Invoices_2.pdf"
+    assert s.preview_name(b, dest) == "Invoices_2.pdf"
     wait_until(lambda: not s.busy)
+
+
+def test_estimate_follows_the_queue(make_session, dest):
+    s = make_session(2, engine=SlowEngine())
+    assert s.estimate() is None
+    a, b = s.items
+    s.send([a, b], dest)
+    wait_until(lambda: a.progress >= 0 or b.progress >= 0)
+    snapshot = s.estimate()
+    assert snapshot.pages_total == 2 and snapshot.pages_done == 0
+    assert 0 <= snapshot.fraction < 1 and snapshot.seconds_left > 0
+    s.cancel()
+    wait_until(lambda: not s.busy)
+    assert s.estimate() is None and a.progress == b.progress == -1
+
+
+def test_speed_is_learned_from_real_ocr(make_session, dest):
+    from flypage.progress import Speed
+
+    s = make_session(1)
+    s.send(s.items, dest)
+    wait_until(lambda: not s.busy)
+    assert Speed.load().samples == 1
+
+
+def test_digital_pdf_needs_no_ocr(dest, samples):
+    cfg = Config()
+    cfg.naming.template = "%{dest}_%n"
+    cfg.ocr.languages = ["klingon"]  # OCR could not even start
+    s2 = Session(cfg, [samples.digital_pdf()], engine=FakeEngine())
+    [item] = s2.items
+    assert item.digital and s2.passthrough(item)
+    assert s2.send([item], dest) == 1  # no OcrError: nothing to recognise
+    wait_until(lambda: not s2.busy)
+    assert [p.name for p in s2.outputs()] == ["Invoices_1.pdf"]

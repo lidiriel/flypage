@@ -51,6 +51,8 @@ Depends:
  udev,
 Recommends:
  iso-codes,
+Suggests:
+ unpaper,
 Description: import scans from a scanner's memory as searchable PDFs
  Flypage notices when a scanner with internal memory (such as an IRIScan
  Book) is plugged in, copies its files and opens a window where the scans
@@ -58,7 +60,7 @@ Description: import scans from a scanner's memory as searchable PDFs
  into a PDF with an invisible OCR text layer, so it can be searched and its
  text copied.
  .
- Several scans can be chained into one multi-page PDF, output files are
- named from a template, and originals can be deleted from the scanner once
- their PDF is written. OCR uses Tesseract through ocrmypdf; PNG, JPEG and
- PDF files are accepted.
+ Each scan gives its own PDF, output files are named from a template, and
+ scans can be moved (deleted from the scanner once their PDF is written) or
+ copied. OCR uses Tesseract through ocrmypdf; PNG, JPEG and PDF files are
+ accepted, and images can also be filed as they are, without OCR.

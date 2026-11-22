@@ -13,7 +13,7 @@ from flypage.config import Config, Destination, Scanner
 from flypage.device import BLOCK, FILESYSTEM, UsbDisk, usb_disk
 from flypage.importer import ImportFailed, ScannerFiles, import_files
 from flypage.scanners import match
-from flypage.session import PER_FILE, Session
+from flypage.session import Session
 
 BOOK = Scanner(name="IRIScan Book", vendor_id="07b4", model_id="0109", source_dir="DCIM")
 
@@ -192,7 +192,7 @@ def scanner_session(memory, samples, tmp_path):
     samples.jpeg("IMAG0002.jpg").rename(folder / "IMAG0002.jpg")
     originals = ScannerFiles(import_files(memory, BOOK), is_mounted=lambda _p: True)
     cfg = Config(destinations=[Destination(name="Docs", path=str(tmp_path / "out"), default=True)])
-    return Session(cfg, originals.files(), engine=FakeEngine(), sort_mode=PER_FILE, originals=originals), folder
+    return Session(cfg, originals.files(), engine=FakeEngine(), originals=originals), folder
 
 
 def test_success_deletes_on_the_scanner(scanner_session):

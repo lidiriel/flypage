@@ -142,6 +142,8 @@ class DestinationsPage(_Page):
         first_radio = None
         for i, dest in enumerate(dests):
             subtitle = dest.path + (f"  ·  {dest.template}" if dest.template else "")
+            if dest.table_layout:
+                subtitle += "  ·  " + _("tables")
             row = Adw.ActionRow(title=dest.name, subtitle=subtitle, use_markup=False, activatable=True)
             radio = Gtk.CheckButton(active=dest.default, valign=Gtk.Align.CENTER, tooltip_text=_("Default destination"))
             if first_radio:
@@ -265,24 +267,84 @@ class OcrPage(_Page):
         )
         self.add(engines)
 
-        languages = Adw.PreferencesGroup(
+        self.languages = Adw.PreferencesGroup(
             title=_("Languages"),
             description=_(
-                "Languages present in your documents. To add one, install its Tesseract package, "
-                "e.g. “sudo apt install tesseract-ocr-deu” for German."
+                "Languages present in your documents, in order: the first one is the default in the "
+                "processing window. Each extra language used together slows OCR down. To add one, "
+                "install its Tesseract package, e.g. “sudo apt install tesseract-ocr-deu” for German."
             ),
         )
-        codes = sorted(set(installed) | set(self.cfg.ocr.languages), key=lambda c: language_name(c).casefold())
-        for code in codes:
-            subtitle = code if code in installed else _("{code} — not installed").format(code=code)
-            row = Adw.ActionRow(title=language_name(code), subtitle=subtitle, use_markup=False)
-            check = Gtk.CheckButton(active=code in self.cfg.ocr.languages, valign=Gtk.Align.CENTER)
+        self.installed = installed
+        self._rows: list[Gtk.Widget] = []
+        self.add(self.languages)
+        self.refresh()
+
+        advanced = Adw.PreferencesGroup(
+            title=_("Advanced"),
+            description=_("Off by default: they make OCR slower. Tables are set per destination."),
+        )
+        self.rotate = Adw.SwitchRow(
+            title=_("Straighten Rotated Pages"),
+            subtitle=_("For pages scanned upside down or sideways (about 15 % more time)")
+            if tesseract.can_rotate()
+            else _("Needs the Tesseract model “osd”: sudo apt install tesseract-ocr-osd"),
+            active=self.cfg.ocr.rotate_pages,
+            sensitive=tesseract.can_rotate() or self.cfg.ocr.rotate_pages,
+        )
+        self.rotate.connect("notify::active", self._on_option, "rotate_pages")
+        self.clean = Adw.SwitchRow(
+            title=_("Clean Pages Before OCR"),
+            subtitle=_("Helps with dirty or shadowed scans; the saved image is unchanged (about 50 % more time)")
+            if tesseract.can_clean()
+            else _("Needs unpaper: sudo apt install unpaper"),
+            active=self.cfg.ocr.clean,
+            sensitive=tesseract.can_clean() or self.cfg.ocr.clean,
+        )
+        self.clean.connect("notify::active", self._on_option, "clean")
+        advanced.add(self.rotate)
+        advanced.add(self.clean)
+        self.add(advanced)
+
+    def _on_option(self, row: Adw.SwitchRow, _pspec, name: str) -> None:
+        setattr(self.cfg.ocr, name, row.get_active())
+        self.window.changed()
+
+    def refresh(self) -> None:
+        """Checked languages first, in their order (with up/down buttons), then the others by name."""
+        for row in self._rows:
+            self.languages.remove(row)
+        self._rows = []
+        self.checks = {}
+        chosen = self.cfg.ocr.languages
+        others = sorted(set(self.installed) - set(chosen), key=lambda c: language_name(c).casefold())
+        for code in chosen + others:
+            parts = [code if code in self.installed else _("{code} — not installed").format(code=code)]
+            if chosen and code == chosen[0]:
+                parts.append(_("default"))
+            row = Adw.ActionRow(title=language_name(code), subtitle="  ·  ".join(parts), use_markup=False)
+            check = Gtk.CheckButton(active=code in chosen, valign=Gtk.Align.CENTER)
             check.connect("toggled", self._on_language_toggled, code)
             self.checks[code] = check
             row.add_prefix(check)
             row.set_activatable_widget(check)
-            languages.add(row)
-        self.add(languages)
+            if code in chosen:
+                i = chosen.index(code)
+                row.add_suffix(_icon_button("go-up-symbolic", _("Move up"), self._move_language, i, -1, sensitive=i > 0))
+                row.add_suffix(
+                    _icon_button("go-down-symbolic", _("Move down"), self._move_language, i, 1,
+                                 sensitive=i < len(chosen) - 1)
+                )  # fmt: skip
+            self.languages.add(row)
+            self._rows.append(row)
+
+    def _move_language(self, index: int, step: int) -> None:
+        languages = self.cfg.ocr.languages
+        other = index + step
+        if 0 <= other < len(languages):
+            languages[index], languages[other] = languages[other], languages[index]
+            self.refresh()
+            self.window.changed()
 
     def _on_language_toggled(self, check: Gtk.CheckButton, code: str) -> None:
         if self._reverting:
@@ -299,6 +361,8 @@ class OcrPage(_Page):
             return
         else:
             languages.remove(code)
+        # Rebuilt once this signal is over: the row being clicked is replaced.
+        GLib.idle_add(lambda: self.refresh() and False)
         self.window.changed()
 
 

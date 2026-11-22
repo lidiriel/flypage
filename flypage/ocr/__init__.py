@@ -1,10 +1,10 @@
 """OCR engines and their registry."""
 
 from flypage.i18n import _
-from flypage.ocr.base import OcrEngine, OcrError
+from flypage.ocr.base import OcrEngine, OcrError, OcrOptions
 from flypage.ocr.tesseract import TesseractEngine
 
-__all__ = ["OcrEngine", "OcrError", "get_engine"]
+__all__ = ["OcrEngine", "OcrError", "OcrOptions", "get_engine"]
 
 
 def get_engine(name: str) -> OcrEngine:

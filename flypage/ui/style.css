@@ -27,22 +27,11 @@
   border-radius: 999px;
 }
 
-.chain-badge {
-  margin: 4px;
-  min-width: 22px;
-  min-height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
+.ring-label {
   color: white;
   font-weight: bold;
+  font-size: smaller;
 }
-
-.chain-0 { background-color: var(--purple-3); }
-.chain-1 { background-color: var(--blue-3); }
-.chain-2 { background-color: var(--green-4); }
-.chain-3 { background-color: var(--orange-3); }
-.chain-4 { background-color: var(--red-3); }
-.chain-5 { background-color: var(--brown-3); }
 
 .dest-button {
   min-width: 96px;

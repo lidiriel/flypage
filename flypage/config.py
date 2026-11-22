@@ -23,18 +23,32 @@ from flypage.i18n import SUPPORTED_UI_LANGUAGES
 log = logging.getLogger(__name__)
 
 OCR_ENGINES = ("tesseract",)
-SORT_MODES = ("all_same", "per_file")
+
+
+# Desktop language → Tesseract model, for the default OCR language.
+_TESSERACT_CODES = {
+    "en": "eng", "fr": "fra", "de": "deu", "es": "spa", "it": "ita", "nl": "nld", "pt": "por",
+    "ca": "cat", "da": "dan", "fi": "fin", "nb": "nor", "no": "nor", "pl": "pol", "sv": "swe",
+}  # fmt: skip
+
+
+def default_languages() -> list[str]:
+    """Only the desktop's language: each extra language slows OCR down (PLAN.md §7.1)."""
+    for var in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
+        value = os.environ.get(var, "")
+        if value and value not in ("C", "POSIX") and not value.startswith("C."):
+            code = value.split(":")[0].split("_")[0].split(".")[0].lower()
+            return [_TESSERACT_CODES.get(code, "eng")]
+    return ["eng"]
 
 
 @dataclass
 class OcrConfig:
     engine: str = "tesseract"
-    languages: list[str] = field(default_factory=lambda: ["eng", "fra"])
-
-
-@dataclass
-class ProcessingConfig:
-    sort_mode: str = "per_file"  # last used, pre-selected in the window
+    # In order of preference: the first one is the processing window's default.
+    languages: list[str] = field(default_factory=default_languages)
+    rotate_pages: bool = False  # needs Tesseract's "osd" model; ≈+15 % time
+    clean: bool = False  # needs unpaper; ≈+50 % time
 
 
 @dataclass
@@ -59,6 +73,7 @@ class Destination:
     icon: str = "folder-symbolic"
     default: bool = False
     template: str = ""  # overrides naming.template when set
+    table_layout: bool = False  # read tables row by row (e.g. invoices)
 
     def expanded_path(self) -> Path:
         return Path(self.path).expanduser()
@@ -79,7 +94,6 @@ def _default_destinations() -> list[Destination]:
 class Config:
     ui_language: str = "system"
     ocr: OcrConfig = field(default_factory=OcrConfig)
-    processing: ProcessingConfig = field(default_factory=ProcessingConfig)
     naming: NamingConfig = field(default_factory=NamingConfig)
     scanners: list[Scanner] = field(default_factory=_default_scanners)
     destinations: list[Destination] = field(default_factory=_default_destinations)
@@ -110,6 +124,9 @@ def load(path: Path | None = None) -> Config:
 
 def from_dict(data: dict[str, Any]) -> Config:
     cfg = Config()
+    if "processing" in data:  # only held the sort mode, removed (PLAN.md §9)
+        log.info("config.processing: no longer used, ignored")
+        data = {k: v for k, v in data.items() if k != "processing"}
     _warn_unknown(data, {f.name for f in fields(Config)}, "config")
 
     cfg.ui_language = _value(data, "ui_language", cfg.ui_language, "config", SUPPORTED_UI_LANGUAGES)
@@ -119,9 +136,6 @@ def from_dict(data: dict[str, Any]) -> Config:
         log.warning("ocr.engine: EasyOCR is no longer supported, using tesseract")
         ocr = {k: v for k, v in ocr.items() if k != "engine"}
     _read_into(cfg.ocr, ocr, "ocr", choices={"engine": OCR_ENGINES})
-
-    processing = _table(data, "processing")
-    _read_into(cfg.processing, processing, "processing", choices={"sort_mode": SORT_MODES})
 
     _read_into(cfg.naming, _table(data, "naming"), "naming")
     if not _template_ok(cfg.naming.template, "naming.template"):
@@ -256,6 +270,8 @@ def to_dict(cfg: Config) -> dict[str, Any]:
     for dest in data["destinations"]:
         if not dest["template"]:
             del dest["template"]  # keep the file readable: no override
+        if not dest["table_layout"]:
+            del dest["table_layout"]
     return data
 
 

@@ -12,6 +12,7 @@ Adw.init()
 
 from flypage import config  # noqa: E402
 from flypage.config import Destination, Scanner  # noqa: E402
+from flypage.languages import language_name  # noqa: E402
 from flypage.ui.dialogs import DestinationDialog, ScannerDialog  # noqa: E402
 from flypage.ui.settings_window import SettingsWindow  # noqa: E402
 
@@ -87,6 +88,18 @@ def test_last_language_cannot_be_unchecked(window):
     assert window.cfg.ocr.languages == ["eng"]
 
 
+def test_languages_are_ordered_and_the_first_is_the_default(window):
+    page = window.pages["ocr"]
+    window.cfg.ocr.languages = ["eng", "fra"]
+    page.refresh()
+    page._move_language(1, -1)
+    assert saved(window).ocr.languages == ["fra", "eng"]
+    rows = page._rows
+    assert rows[0].get_title() == language_name("fra") and "default" in rows[0].get_subtitle()
+    page._move_language(0, -1)  # already first: nothing happens
+    assert window.cfg.ocr.languages == ["fra", "eng"]
+
+
 def test_interface_language(window):
     window.pages["interface"].combo.set_selected(2)
     assert saved(window).ui_language == "fr"
@@ -155,3 +168,21 @@ def test_scanner_dialog_uses_a_detected_disk(tmp_path):
     assert dialog.save_button.get_sensitive()
     dialog._save(None)
     assert results == [Scanner(name="OLYMPUS FE210/X775", vendor_id="07b4", model_id="0109", source_dir="DCIM")]
+
+
+def test_advanced_ocr_options_are_saved(window):
+    page = window.pages["ocr"]
+    if page.rotate.get_sensitive():
+        page.rotate.set_active(True)
+        assert saved(window).ocr.rotate_pages
+    if page.clean.get_sensitive():
+        page.clean.set_active(True)
+        assert saved(window).ocr.clean
+
+
+def test_destination_dialog_table_layout():
+    got = []
+    dialog = DestinationDialog(Destination(name="Invoices", path="~/I"), set(), "%n", got.append)
+    dialog.table_layout.set_active(True)
+    dialog._save(None)
+    assert got[0].table_layout

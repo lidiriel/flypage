@@ -86,6 +86,15 @@ class DestinationDialog(FormDialog):
         group.add(self.icon_row)
         self.page.add(group)
 
+        ocr = Adw.PreferencesGroup(title=_("OCR"))
+        self.table_layout = Adw.SwitchRow(
+            title=_("Tables"),
+            subtitle=_("Read tables row by row, e.g. for invoices (worse on text in columns)"),
+            active=self.dest.table_layout,
+        )
+        ocr.add(self.table_layout)
+        self.page.add(ocr)
+
         own = Adw.PreferencesGroup(title=_("File name"))
         self.own_template = Adw.SwitchRow(
             title=_("Own file name template"),
@@ -179,6 +188,7 @@ class DestinationDialog(FormDialog):
     def result(self) -> Destination:
         self.dest.name = self.name_row.get_text().strip()
         self.dest.template = self.template_editor.template if self.own_template.get_active() else ""
+        self.dest.table_layout = self.table_layout.get_active()
         return self.dest
 
 

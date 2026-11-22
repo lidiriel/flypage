@@ -1,4 +1,4 @@
-"""Processing window: sort scans into folders; dropping on a folder starts OCR (PLAN.md §6)."""
+"""Processing window: sort scans into folders; dropping on a folder starts OCR (PLAN.md §6, §9)."""
 
 from __future__ import annotations
 
@@ -8,12 +8,13 @@ from pathlib import Path
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
 
-from flypage import config, notifications, thumbnails
+from flypage import notifications, thumbnails
 from flypage.config import Destination
 from flypage.i18n import _, ngettext
 from flypage.model import ImportedFile
 from flypage.ocr import OcrError
-from flypage.session import ALL_SAME, PER_FILE, Session
+from flypage.languages import language_name
+from flypage.session import Session
 from flypage.ui.activation import bring_to_front_when_shown
 from flypage.ui.destination_bar import DestinationBar
 from flypage.ui.thumbnail_grid import ThumbnailGrid
@@ -22,6 +23,7 @@ from flypage.ui.widgets import contract_home
 log = logging.getLogger(__name__)
 
 CLOSE_AFTER_S = 10  # summary shown this long before the window closes by itself
+PROGRESS_TICK_MS = 500  # the estimated progress is redrawn this often while OCR runs
 
 _css_loaded = False
 
@@ -35,6 +37,17 @@ def load_css() -> None:
             Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
         _css_loaded = True
+
+
+def time_left(seconds: float, overdue: bool = False) -> str:
+    """ "about 40 s left", "about 3 min left"; "almost done…" once past the estimate."""
+    if overdue and seconds < 5:
+        return _("almost done…")
+    if seconds < 60:
+        n = max(5, int(-(-seconds // 5) * 5))  # rounded up to 5 s
+        return ngettext("about {n} s left", "about {n} s left", n).format(n=n)
+    n = round(seconds / 60)
+    return ngettext("about {n} min left", "about {n} min left", n).format(n=n)
 
 
 class PreviewPane(Gtk.Stack):
@@ -70,33 +83,37 @@ class PreviewPane(Gtk.Stack):
             self.set_visible_child_name("none")
             self._showing = None
             return
-        group = session.expand(items)
-        first = items[0]
-        if len(items) > 1 and not (first.chain and group == session.chain_members(first.chain)):
+        if len(items) > 1:
             self.multi.set_title(ngettext("{n} file selected", "{n} files selected", len(items)).format(n=len(items)))
-            self.multi.set_description(_("Drag them onto a folder, or click a folder, to send them."))
+            lines = [_("Each file is sent on its own. Drag them onto a folder, or click a folder.")]
+            images = sum(1 for i in items if session.passthrough(i) and not i.digital)
+            if images:
+                lines.append(self.window.passthrough_text(images))
+            digital = sum(1 for i in items if i.digital)
+            if digital:
+                lines.append(self.window.digital_text(digital))
+            self.multi.set_description("\n\n".join(lines))
             self.set_visible_child_name("multi")
             self._showing = None
             return
 
+        item = items[0]
         self.set_visible_child_name("file")
-        if self._showing is not first:
-            self._showing = first
+        if self._showing is not item:
+            self._showing = item
             self.picture.set_paintable(None)
-            self.window.grid.thumbnailer.get(first.path, thumbnails.PREVIEW, lambda t, it=first: self._set(it, t))
-        pages = sum(i.pages for i in group)
-        if first.chain:
-            self.title.set_label(_("Chain {number}").format(number=first.chain))
-            lines = [ngettext("{n} file", "{n} files", len(group)).format(n=len(group)) + " · "
-                     + ngettext("{n} page", "{n} pages", pages).format(n=pages)]  # fmt: skip
-        else:
-            self.title.set_label(first.name)
-            lines = [ngettext("{n} page", "{n} pages", pages).format(n=pages)]
-        name = session.preview_name(items, self.window.cfg.default_destination())
+            self.window.grid.thumbnailer.get(item.path, thumbnails.PREVIEW, lambda t, it=item: self._set(it, t))
+        self.title.set_label(item.name)
+        lines = [ngettext("{n} page", "{n} pages", item.pages).format(n=item.pages)]
+        name = session.preview_name(item, self.window.cfg.default_destination())
         if name:
             lines.append(_("In “Default”: {name}").format(name=name))
-        if first.error:
-            lines.append(_("Failed: {error}").format(error=first.error))
+        if item.digital:
+            lines.append(self.window.digital_text(1))
+        elif session.passthrough(item):
+            lines.append(self.window.passthrough_text(1))
+        if item.error:
+            lines.append(_("Failed: {error}").format(error=item.error))
         self.details.set_label("\n".join(lines))
 
     def _set(self, item: ImportedFile, texture) -> None:
@@ -115,6 +132,9 @@ class ProcessingWindow(Adw.ApplicationWindow):
         self._close_in = 0
         self._closing = False
         self._reported = False
+        self._last_folder: Gio.File | None = None
+        self._tick_source = 0
+        self._current = ""  # file being written, for the progress text
 
         # Header: icon + status message, nothing else.
         self.message = Gtk.Label(ellipsize=Pango.EllipsizeMode.END)
@@ -132,45 +152,13 @@ class ProcessingWindow(Adw.ApplicationWindow):
             resize_start_child=True, resize_end_child=True, position=620, vexpand=True,
         )  # fmt: skip
 
-        # Action row: Chain + Delete, and the mode toggle.
-        self.chain_button = Gtk.Button(
-            child=Adw.ButtonContent(icon_name="insert-link-symbolic", label=_("_Chain"), use_underline=True),
-            action_name="win.chain",
-            tooltip_text=_("Merge the selected files into one PDF (or unchain them)"),
-        )
-        self.delete_button = Gtk.Button(
-            child=Adw.ButtonContent(icon_name="user-trash-symbolic", label=_("_Delete"), use_underline=True),
-            action_name="win.delete",
-            tooltip_text=_("Delete the selected files"),
-        )
-        self.mode = Adw.ToggleGroup()
-        self.mode.add(Adw.Toggle(name=ALL_SAME, label=_("Same for all"),
-                                 tooltip=_("A drop sends every file to that folder")))  # fmt: skip
-        self.mode.add(Adw.Toggle(name=PER_FILE, label=_("Per file"), tooltip=_("A drop sends only the dragged files")))
-        self.mode.set_active_name(session.sort_mode)
-        self.mode.connect("notify::active-name", self._on_mode_changed)
-        actions = Gtk.Box(spacing=6, margin_start=12, margin_end=12, margin_top=6)
-        actions.append(self.chain_button)
-        actions.append(self.delete_button)
-        actions.append(Gtk.Box(hexpand=True))
-        actions.append(Gtk.Label(label=_("Mode"), css_classes=["dim-label"]))
-        actions.append(self.mode)
-
         self.destinations = DestinationBar(self.cfg)
         self.destinations.connect("send", self._on_send)
-
-        # Bottom row: Cancel + progress.
-        cancel = Gtk.Button(label=_("_Cancel"), use_underline=True, tooltip_text=_("Stop everything and close"))
-        cancel.connect("clicked", lambda _b: self.close())
-        self.progress = Gtk.ProgressBar(show_text=True, hexpand=True, valign=Gtk.Align.CENTER)
-        bottom = Gtk.Box(spacing=12, margin_start=12, margin_end=12, margin_top=6, margin_bottom=6)
-        bottom.append(cancel)
-        bottom.append(self.progress)
+        self.destinations.connect("choose", self._on_choose)
 
         self.main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.main.append(self.paned)
         self.main.append(Gtk.Separator())
-        self.main.append(actions)
         self.main.append(self.destinations)
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE)
         self.stack.add_named(self.main, "sort")
@@ -180,21 +168,61 @@ class ProcessingWindow(Adw.ApplicationWindow):
         self.toasts = Adw.ToastOverlay(child=self.stack)
         view = Adw.ToolbarView(content=self.toasts)
         view.add_top_bar(header)
-        view.add_bottom_bar(bottom)
-        self.bottom_bar = bottom
+        self.bottom_bar = self._build_toolbar()
+        view.add_bottom_bar(self.bottom_bar)
         self.set_content(view)
 
         self._add_actions()
         session.connect("progress", self._on_progress)
         session.connect("document-done", self._on_document_done)
         session.connect("finished", self._on_finished)
-        session.connect("warning", lambda _s, message: self.toasts.add_toast(Adw.Toast(title=GLib.markup_escape_text(message))))
+        session.connect("warning", lambda _s, message: self.toast(message))
         session.store.connect("items-changed", lambda *_args: self._update_message())
         self.connect("close-request", self._on_close_request)
         bring_to_front_when_shown(self)
         self._update_message()
         self._on_selection_changed(self.grid)
         self._on_progress(session, 0, 0, "")
+
+    def _build_toolbar(self) -> Gtk.Box:
+        """One row: what the next send does (convert, move/copy, language), progress, Close."""
+        self.convert = Gtk.Switch(active=self.session.convert_images, valign=Gtk.Align.CENTER)
+        self.convert.connect("notify::active", self._on_convert_changed)
+        convert_label = Gtk.Label(label=_("_Images to PDF"), use_underline=True, mnemonic_widget=self.convert)
+        convert = Gtk.Box(spacing=6)
+        convert.append(convert_label)
+        convert.append(self.convert)
+        convert.set_tooltip_text(
+            _("On: JPG and PNG files are converted to PDF, then OCR makes them searchable.\n"
+              "Off: they are sent as they are, without OCR. OCR only works on PDF.")
+        )  # fmt: skip
+
+        self.transfer = Adw.ToggleGroup()
+        self.transfer.add(Adw.Toggle(name="move", label=_("Move"),
+                                     tooltip=_("The originals are deleted once sent (on the scanner too)")))  # fmt: skip
+        self.transfer.add(Adw.Toggle(name="copy", label=_("Copy"), tooltip=_("The originals are kept")))
+        self.transfer.set_active_name("copy" if self.session.copy else "move")
+        self.transfer.connect("notify::active-name", self._on_transfer_changed)
+
+        # Configured languages in order (the first is the default), then all of them together.
+        codes = list(self.cfg.ocr.languages)
+        self.language_choices = [[code] for code in codes] + ([codes] if len(codes) > 1 else [])
+        labels = [language_name(code) for code in codes] + ([_("All Languages")] if len(codes) > 1 else [])
+        self.language = Gtk.DropDown(
+            model=Gtk.StringList.new(labels), valign=Gtk.Align.CENTER, sensitive=len(labels) > 1,
+            tooltip_text=_("Language of the documents, for OCR. The first one in Settings is the default."),
+        )  # fmt: skip
+        self.language.connect("notify::selected", self._on_language_changed)
+        self._on_language_changed(self.language, None)
+
+        self.progress = Gtk.ProgressBar(show_text=True, hexpand=True, valign=Gtk.Align.CENTER)
+        close = Gtk.Button(label=_("_Close"), use_underline=True, tooltip_text=_("Close the window (running OCR stops)"))
+        close.connect("clicked", lambda _b: self.close())
+
+        bar = Gtk.Box(spacing=12, margin_start=12, margin_end=12, margin_top=6, margin_bottom=6)
+        for widget in (convert, self.transfer, self.language, self.progress, close):
+            bar.append(widget)
+        return bar
 
     # --- actions ---------------------------------------------------------------
 
@@ -207,37 +235,50 @@ class ProcessingWindow(Adw.ApplicationWindow):
                 self.get_application().set_accels_for_action(f"win.{name}", list(accels))
             return action
 
-        self.chain_action = add("chain", lambda *_a: self._chain(), accels=["<Ctrl>l"])
         self.delete_action = add("delete", lambda *_a: self.confirm_delete(), accels=["Delete"])
-        add("unchain", self._on_unchain, GLib.VariantType.new("i"))
-
-    def _chain(self) -> None:
-        items = self.grid.selected()
-        self.session.toggle_chain(items)
-        # Chaining moves files next to each other, which loses the selection.
-        self.grid.select(self.session.expand(items))
-        self._on_selection_changed(self.grid)
-
-    def _on_unchain(self, _action, value: GLib.Variant) -> None:
-        for item in self.session.by_id([value.get_int32()]):
-            self.session.remove_from_chain(item)
 
     def _on_selection_changed(self, _grid) -> None:
         selected = self.grid.selected()
-        self.chain_action.set_enabled(len(selected) >= 2 or any(i.chain for i in selected))
         self.delete_action.set_enabled(bool(selected))
         self.preview.show_items(selected)
 
-    def _on_mode_changed(self, toggles: Adw.ToggleGroup, _pspec) -> None:
-        mode = toggles.get_active_name()
-        self.session.sort_mode = mode
-        try:
-            config.update(lambda cfg: setattr(cfg.processing, "sort_mode", mode))
-        except OSError as err:
-            log.warning("cannot save the sort mode: %s", err)
+    def _on_convert_changed(self, switch: Gtk.Switch, _pspec) -> None:
+        self.session.convert_images = switch.get_active()
+        if not switch.get_active():
+            self.toast(_("JPG and PNG files are now sent as they are, without OCR: OCR only works on PDF."))
+        self._on_selection_changed(self.grid)
+
+    def _on_transfer_changed(self, toggles: Adw.ToggleGroup, _pspec) -> None:
+        self.session.copy = toggles.get_active_name() == "copy"
+        self._on_selection_changed(self.grid)
+
+    def _on_language_changed(self, dropdown: Gtk.DropDown, _pspec) -> None:
+        index = dropdown.get_selected()
+        if 0 <= index < len(self.language_choices):
+            self.session.languages = list(self.language_choices[index])
+
+    def passthrough_text(self, n: int) -> str:
+        """Why ``n`` images will not be OCR'd (the conversion switch is off)."""
+        if self.session.copy:
+            text = ngettext("Not converted: copied as it is, without OCR (OCR only works on PDF).",
+                            "{n} images not converted: copied as they are, without OCR (OCR only works on PDF).", n)  # fmt: skip
+        else:
+            text = ngettext("Not converted: moved as it is, without OCR (OCR only works on PDF).",
+                            "{n} images not converted: moved as they are, without OCR (OCR only works on PDF).", n)  # fmt: skip
+        return text.format(n=n)
+
+    @staticmethod
+    def digital_text(n: int) -> str:
+        """Why ``n`` PDFs will not be OCR'd: they already have text."""
+        return ngettext("Digital PDF: it already has text, so it is filed as it is, without OCR.",
+                        "{n} digital PDFs: they already have text, so they are filed as they are, without OCR.",
+                        n).format(n=n)  # fmt: skip
 
     def toggle_full_preview(self) -> None:
         self.grid.set_visible(not self.grid.get_visible())
+
+    def toast(self, message: str) -> None:
+        self.toasts.add_toast(Adw.Toast(title=GLib.markup_escape_text(message)))
 
     # --- delete ----------------------------------------------------------------
 
@@ -261,40 +302,87 @@ class ProcessingWindow(Adw.ApplicationWindow):
 
     def _delete(self, items: list[ImportedFile]) -> None:
         for error in self.session.delete(items):
-            self.toasts.add_toast(Adw.Toast(title=GLib.markup_escape_text(error)))
+            self.toast(error)
 
     # --- send ------------------------------------------------------------------
 
+    def _items(self, ids: list[int] | None) -> list[ImportedFile]:
+        """The dropped files, or the selection for a click."""
+        return self.grid.selected() if ids is None else self.session.by_id(ids)
+
     def _on_send(self, _bar, dest: Destination, ids: list[int] | None) -> None:
-        items = self.grid.selected() if ids is None else self.session.by_id(ids)
-        if not items and self.session.sort_mode == PER_FILE:
-            self.toasts.add_toast(Adw.Toast(title=_("Select files first, or drag them onto a folder.")))
+        self.send(self._items(ids), dest)
+
+    def send(self, items: list[ImportedFile], dest: Destination) -> None:
+        items = [i for i in items if i.sortable]
+        if not items:
+            self.toast(_("Select files first, or drag them onto a folder."))
             return
         try:
-            sent = self.session.items_to_send(items)
             if self.session.send(items, dest) == 0:
                 return
         except OcrError as err:
             self._alert(_("OCR cannot start"), str(err))
             return
-        self.grid.unselect(sent)
+        self.grid.unselect(items)
         self._update_message()
 
-    def _on_progress(self, _session, done: int, total: int, current: str) -> None:
-        if total == 0:
+    def _on_choose(self, _bar, ids: list[int] | None) -> None:
+        items = self._items(ids)
+        if not items:
+            self.toast(_("Select files first, or drag them onto a folder."))
+            return
+        dialog = Gtk.FileDialog(title=_("Send to Folder"), accept_label=_("_Send Here"), modal=True)
+        start = self._last_folder or Gio.File.new_for_path(str(self.cfg.default_destination().expanded_path()))
+        if start.query_exists(None):
+            dialog.set_initial_folder(start)
+        dialog.select_folder(self, None, self._on_folder_chosen, items)
+
+    def _on_folder_chosen(self, dialog: Gtk.FileDialog, result: Gio.AsyncResult, items: list[ImportedFile]) -> None:
+        try:
+            folder = dialog.select_folder_finish(result)
+        except GLib.Error:  # dismissed
+            return
+        if folder is None or folder.get_path() is None:
+            return
+        self._last_folder = folder
+        self.send(items, self.folder_destination(Path(folder.get_path())))
+
+    @staticmethod
+    def folder_destination(path: Path) -> Destination:
+        return Destination(name=path.name or str(path), path=str(path), icon="folder-symbolic")
+
+    def _on_progress(self, _session, _done: int, _total: int, current: str) -> None:
+        self._current = current
+        self.update_progress()
+        if self.session.busy and not self._tick_source:
+            self._tick_source = GLib.timeout_add(PROGRESS_TICK_MS, self._on_progress_tick)
+
+    def _on_progress_tick(self) -> bool:
+        if self.update_progress():
+            return GLib.SOURCE_CONTINUE
+        self._tick_source = 0
+        return GLib.SOURCE_REMOVE
+
+    def update_progress(self) -> bool:
+        """Show the estimated progress; False once nothing is queued."""
+        snapshot = self.session.estimate()
+        if snapshot is None:
             self.progress.set_fraction(0)
             self.progress.set_text(_("Drag files onto a folder to start"))
-            return
-        self.progress.set_fraction(done / total)
-        text = _("OCR {done} / {total} pages").format(done=done, total=total)
-        if current and done < total:
-            text += f" — {current}"
-        self.progress.set_text(text)
+            return False
+        self.progress.set_fraction(snapshot.fraction)
+        parts = [_("{done} / {total} pages").format(done=snapshot.pages_done, total=snapshot.pages_total)]
+        parts.append(time_left(snapshot.seconds_left, snapshot.overdue))
+        if self._current:
+            parts.append(self._current)
+        self.progress.set_text(" · ".join(parts))
+        return True
 
     def _on_document_done(self, _session, result) -> None:
         if not result.ok and not result.cancelled:
             name = result.document.sources[0].name
-            self.toasts.add_toast(Adw.Toast(title=GLib.markup_escape_text(_("{name}: OCR failed").format(name=name))))
+            self.toast(_("{name}: failed").format(name=name))
         self._update_message()
         self._on_selection_changed(self.grid)
 
@@ -321,7 +409,7 @@ class ProcessingWindow(Adw.ApplicationWindow):
             self.close()
             return
         folders = Counter(p.parent for p in outputs)
-        title = ngettext("{n} searchable PDF created", "{n} searchable PDFs created", len(outputs)).format(n=len(outputs))
+        title = notifications.title(len(outputs), notifications.count_pdfs(outputs))
         self.summary.set_title(title)
         self._summary_lines = "\n".join(
             ngettext("{n} in {folder}", "{n} in {folder}", count).format(n=count, folder=contract_home(str(folder)))
@@ -355,7 +443,8 @@ class ProcessingWindow(Adw.ApplicationWindow):
             print(notifications.report_line(outputs), flush=True)
         elif app is not None and outputs:
             folders = list(dict.fromkeys(str(p.parent) for p in outputs))
-            app.send_notification("flypage-done", notifications.summary(len(outputs), folders))
+            summary = notifications.summary(len(outputs), folders, pdfs=notifications.count_pdfs(outputs))
+            app.send_notification("flypage-done", summary)
 
     def _open_folder_and_close(self, folder: Path) -> None:
         try:
@@ -397,6 +486,9 @@ class ProcessingWindow(Adw.ApplicationWindow):
         return True
 
     def _really_close(self) -> None:
+        if self._tick_source:
+            GLib.source_remove(self._tick_source)
+            self._tick_source = 0
         if self._close_timer:
             GLib.source_remove(self._close_timer)
             self._close_timer = 0

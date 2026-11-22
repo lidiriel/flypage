@@ -67,6 +67,29 @@ def samples(tmp_path):
                 png.unlink()
             return path
 
+        def digital_pdf(self, name="digital.pdf", text="Hello", in_form=False):
+            """A PDF with real text, as office software writes it (or, ``in_form``, as ocrmypdf does)."""
+            path = self.root / name
+            pdf = pikepdf.new()
+            font = pdf.make_indirect(pikepdf.Dictionary(Type=pikepdf.Name.Font, Subtype=pikepdf.Name.Type1,
+                                                        BaseFont=pikepdf.Name.Helvetica))  # fmt: skip
+            fonts = pikepdf.Dictionary(F1=font)
+            content = f"BT /F1 24 Tf 72 720 Td ({text}) Tj ET".encode()
+            if in_form:
+                form = pikepdf.Stream(pdf, content)
+                form.Type, form.Subtype = pikepdf.Name.XObject, pikepdf.Name.Form
+                form.BBox = [0, 0, 612, 792]
+                form.Resources = pikepdf.Dictionary(Font=fonts)
+                resources = pikepdf.Dictionary(XObject=pikepdf.Dictionary(Fm0=pdf.make_indirect(form)))
+                content = b"q /Fm0 Do Q"
+            else:
+                resources = pikepdf.Dictionary(Font=fonts)
+            page = pikepdf.Dictionary(Type=pikepdf.Name.Page, MediaBox=[0, 0, 612, 792], Resources=resources,
+                                      Contents=pikepdf.Stream(pdf, content))  # fmt: skip
+            pdf.pages.append(pikepdf.Page(page))
+            pdf.save(path)
+            return path
+
     return Samples()
 
 
@@ -85,7 +108,8 @@ class FakeEngine(OcrEngine):
     def languages(self):
         return ["eng", "fra"]
 
-    def recognise(self, src, dst, languages, cancel: CancelToken):
+    def recognise(self, src, dst, languages, cancel: CancelToken, options=None):
+        self.options = options
         cancel.check()
         with pikepdf.open(src) as pdf:
             pages = len(pdf.pages)
@@ -96,7 +120,7 @@ class FakeEngine(OcrEngine):
 class SlowEngine(FakeEngine):
     """Blocks in an external command until cancelled."""
 
-    def recognise(self, src, dst, languages, cancel: CancelToken):
+    def recognise(self, src, dst, languages, cancel: CancelToken, options=None):
         cancel.run(["sleep", "30"])
         shutil.copyfile(src, dst)
 
