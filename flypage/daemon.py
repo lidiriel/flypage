@@ -114,15 +114,33 @@ class Daemon(Gio.Application):
             _ok, stdout, _stderr = process.communicate_utf8_finish(result)
         except GLib.Error as err:
             log.warning("processing window: %s", err.message)
-            return
+            stdout = ""
         report = notifications.parse_report(stdout or "")
+        if not job.scanner.eject_when_closed:
+            self._report(job, report, None)
+            return
+        # The window process has exited: nothing uses the scanner any more.
+        self.watcher.eject(job.disk.object_path, lambda error: self._on_ejected(job, report, error))
+
+    def _on_ejected(self, job: Job, report: dict | None, error: str | None) -> None:
+        if error is None:
+            log.info("%s ejected", job.scanner.name)
+            line = _("You can unplug {scanner}.").format(scanner=job.scanner.name)
+        else:
+            log.warning("cannot eject %s: %s", job.scanner.name, error)
+            line = _("{scanner} could not be ejected: {error}").format(scanner=job.scanner.name, error=error)
+        self._report(job, report, line)
+
+    def _report(self, job: Job, report: dict | None, eject_line: str | None) -> None:
+        """The end notification: the files created, then the outcome of the eject if there was one."""
         if report and report.get("created"):
-            self.send_notification(
-                f"done-{job.disk.object_path}",
-                notifications.summary(
-                    report["created"], report.get("folders", []), "app.open-folder", report.get("pdfs")
-                ),
-            )
+            folders = report.get("folders", [])
+            notification = notifications.summary(report["created"], folders, "app.open-folder", report.get("pdfs"))
+            if eject_line:
+                notification.set_body(notifications.summary_body(folders) + "\n" + eject_line)
+            self.send_notification(f"done-{job.disk.object_path}", notification)
+        elif eject_line:
+            self.notify(job, job.scanner.name, eject_line)
 
     def _open_window(self, staging: Path) -> Gio.Subprocess:
         # Its standard output carries the final report (flypage.notifications).

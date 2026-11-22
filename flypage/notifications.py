@@ -59,7 +59,7 @@ def summary(
 ) -> Gio.Notification:
     """The "N searchable PDFs created" notification; ``open_action`` adds one *Open* button per folder."""
     notification = Gio.Notification.new(title(created, pdfs))
-    notification.set_body(", ".join(contract_home(f) for f in folders))
+    notification.set_body(summary_body(folders))
     notification.set_icon(Gio.ThemedIcon.new("scanner-symbolic"))
     if open_action and folders:
         notification.set_default_action_and_target(open_action, GLib.Variant.new_string(folders[0]))
@@ -68,6 +68,10 @@ def summary(
                 _("Open {folder}").format(folder=Path(folder).name), open_action, GLib.Variant.new_string(folder)
             )
     return notification
+
+
+def summary_body(folders: list[str]) -> str:
+    return ", ".join(contract_home(f) for f in folders)
 
 
 def open_folder(folder: str) -> None:

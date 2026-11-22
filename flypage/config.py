@@ -64,6 +64,7 @@ class Scanner:
     serial: str = ""  # empty = any unit
     source_dir: str = ""  # relative to the mount point; empty = whole memory
     delete_after_import: bool = True
+    eject_when_closed: bool = True  # eject once the processing window closes
 
 
 AUTO_ICONS = ("", "folder-symbolic")  # "folder-symbolic": the default of older versions

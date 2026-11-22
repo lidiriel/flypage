@@ -373,6 +373,8 @@ class ScannersPage(_Page):
             details = [ids, scanner.source_dir or _("whole memory")]
             if scanner.delete_after_import:
                 details.append(_("deleted after import"))
+            if scanner.eject_when_closed:
+                details.append(_("ejected"))
             row = Adw.ActionRow(title=scanner.name, subtitle="  ·  ".join(details), use_markup=False, activatable=True)
             row.add_prefix(Gtk.Image(icon_name="scanner-symbolic", pixel_size=24))
             row.add_suffix(_icon_button("user-trash-symbolic", _("Remove"), self._remove, i))

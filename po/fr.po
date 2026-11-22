@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: flypage\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-22 17:50+0100\n"
+"POT-Creation-Date: 2026-11-22 21:24+0100\n"
 "PO-Revision-Date: 2026-11-22 15:30+0100\n"
 "Last-Translator: Flypage developers\n"
 "Language-Team: French\n"
@@ -28,7 +28,7 @@ msgstr "Importe les documents quand un scanner à mémoire est branché"
 
 #: data/io.github.flypage.Processing.desktop.in:3
 #: data/io.github.flypage.Settings.desktop.in:3
-#: data/io.github.flypage.metainfo.xml.in:6 flypage/ui/processing_window.py:127
+#: data/io.github.flypage.metainfo.xml.in:6 flypage/ui/processing_window.py:131
 msgid "Flypage"
 msgstr "Flypage"
 
@@ -212,6 +212,16 @@ msgstr "{scanner} : rien à importer"
 msgid "The scanner memory has no new file."
 msgstr "La mémoire du scanner ne contient aucun nouveau fichier."
 
+#: flypage/daemon.py:128
+#, python-brace-format
+msgid "You can unplug {scanner}."
+msgstr "Vous pouvez débrancher {scanner}."
+
+#: flypage/daemon.py:131
+#, python-brace-format
+msgid "{scanner} could not be ejected: {error}"
+msgstr "Impossible d’éjecter {scanner} : {error}"
+
 #: flypage/naming.py:60
 msgid "The file name template is empty."
 msgstr "Le modèle de nom de fichier est vide."
@@ -270,7 +280,7 @@ msgid_plural "{n} searchable PDFs"
 msgstr[0] "{n} PDF interrogeable"
 msgstr[1] "{n} PDF interrogeables"
 
-#: flypage/notifications.py:68 flypage/ui/processing_window.py:421
+#: flypage/notifications.py:68 flypage/ui/processing_window.py:429
 #, python-brace-format
 msgid "Open {folder}"
 msgstr "Ouvrir {folder}"
@@ -313,7 +323,7 @@ msgstr "Annulé"
 msgid "{name}: unsupported file type (expected PNG, JPEG or PDF)"
 msgstr "{name} : type de fichier non pris en charge (PNG, JPEG ou PDF attendu)"
 
-#: flypage/ui/destination_bar.py:44
+#: flypage/ui/destination_bar.py:46
 #, python-brace-format
 msgid ""
 "{name}: {path}\n"
@@ -322,11 +332,11 @@ msgstr ""
 "{name} : {path}\n"
 "Déposez des fichiers ici, ou cliquez pour envoyer la sélection."
 
-#: flypage/ui/destination_bar.py:52
+#: flypage/ui/destination_bar.py:54
 msgid "Other Folder…"
 msgstr "Autre dossier…"
 
-#: flypage/ui/destination_bar.py:53
+#: flypage/ui/destination_bar.py:55
 msgid ""
 "Choose any folder\n"
 "Drop files here, or click to send the selection."
@@ -334,7 +344,7 @@ msgstr ""
 "Choisir n'importe quel dossier\n"
 "Déposez des fichiers ici, ou cliquez pour envoyer la sélection."
 
-#: flypage/ui/dialogs.py:30 flypage/ui/processing_window.py:296
+#: flypage/ui/dialogs.py:30 flypage/ui/processing_window.py:304
 msgid "_Cancel"
 msgstr "_Annuler"
 
@@ -494,7 +504,15 @@ msgstr "Supprimer du scanner après l'import"
 msgid "Once the searchable PDFs have been written"
 msgstr "Une fois les PDF interrogeables écrits"
 
-#: flypage/ui/dialogs.py:261
+#: flypage/ui/dialogs.py:252
+msgid "Eject the scanner when the window closes"
+msgstr "Éjecter le scanner à la fermeture de la fenêtre"
+
+#: flypage/ui/dialogs.py:253
+msgid "It can then be unplugged safely"
+msgstr "Il peut alors être débranché sans risque"
+
+#: flypage/ui/dialogs.py:267
 msgid "_Use"
 msgstr "_Utiliser"
 
@@ -521,42 +539,42 @@ msgstr[1] "encore {n} min environ"
 msgid "Select a file to preview it"
 msgstr "Sélectionnez un fichier pour l'afficher"
 
-#: flypage/ui/processing_window.py:87
+#: flypage/ui/processing_window.py:88
 #, python-brace-format
 msgid "{n} file selected"
 msgid_plural "{n} files selected"
 msgstr[0] "{n} fichier sélectionné"
 msgstr[1] "{n} fichiers sélectionnés"
 
-#: flypage/ui/processing_window.py:88
+#: flypage/ui/processing_window.py:89
 msgid ""
 "Each file is sent on its own. Drag them onto a folder, or click a folder."
 msgstr ""
 "Chaque fichier est envoyé séparément. Glissez-les sur un dossier, ou cliquez "
 "sur un dossier."
 
-#: flypage/ui/processing_window.py:107 flypage/ui/thumbnail_grid.py:220
+#: flypage/ui/processing_window.py:108 flypage/ui/thumbnail_grid.py:222
 #, python-brace-format
 msgid "{n} page"
 msgid_plural "{n} pages"
 msgstr[0] "{n} page"
 msgstr[1] "{n} pages"
 
-#: flypage/ui/processing_window.py:111
+#: flypage/ui/processing_window.py:112
 #, python-brace-format
 msgid "In “{folder}”: {name}"
 msgstr "Dans « {folder} » : {name}"
 
-#: flypage/ui/processing_window.py:117
+#: flypage/ui/processing_window.py:118
 #, python-brace-format
 msgid "Failed: {error}"
 msgstr "Échec : {error}"
 
-#: flypage/ui/processing_window.py:192
+#: flypage/ui/processing_window.py:199
 msgid "_Images to PDF"
 msgstr "_Images en PDF"
 
-#: flypage/ui/processing_window.py:197
+#: flypage/ui/processing_window.py:204
 msgid ""
 "On: JPG and PNG files are converted to PDF, then OCR makes them searchable.\n"
 "Off: they are sent as they are, without OCR. OCR only works on PDF."
@@ -566,43 +584,43 @@ msgstr ""
 "Désactivé : ils sont envoyés tels quels, sans OCR. L'OCR ne fonctionne que "
 "sur des PDF."
 
-#: flypage/ui/processing_window.py:202
+#: flypage/ui/processing_window.py:209
 msgid "Move"
 msgstr "Déplacer"
 
-#: flypage/ui/processing_window.py:203
+#: flypage/ui/processing_window.py:210
 msgid "The originals are deleted once sent (on the scanner too)"
 msgstr "Les originaux sont supprimés une fois envoyés (sur le scanner aussi)"
 
 #. fmt: skip
-#: flypage/ui/processing_window.py:204
+#: flypage/ui/processing_window.py:211
 msgid "Copy"
 msgstr "Copier"
 
-#: flypage/ui/processing_window.py:204
+#: flypage/ui/processing_window.py:211
 msgid "The originals are kept"
 msgstr "Les originaux sont conservés"
 
-#: flypage/ui/processing_window.py:211
+#: flypage/ui/processing_window.py:218
 msgid "All Languages"
 msgstr "Toutes les langues"
 
-#: flypage/ui/processing_window.py:214
+#: flypage/ui/processing_window.py:221
 msgid ""
 "Language of the documents, for OCR. The first one in Settings is the default."
 msgstr ""
 "Langue des documents, pour l'OCR. La première des paramètres est celle par "
 "défaut."
 
-#: flypage/ui/processing_window.py:220 flypage/ui/processing_window.py:424
+#: flypage/ui/processing_window.py:227 flypage/ui/processing_window.py:432
 msgid "_Close"
 msgstr "_Fermer"
 
-#: flypage/ui/processing_window.py:220
+#: flypage/ui/processing_window.py:227
 msgid "Close the window (running OCR stops)"
 msgstr "Fermer la fenêtre (l'OCR en cours s'arrête)"
 
-#: flypage/ui/processing_window.py:249
+#: flypage/ui/processing_window.py:257
 msgid ""
 "JPG and PNG files are now sent as they are, without OCR: OCR only works on "
 "PDF."
@@ -610,7 +628,7 @@ msgstr ""
 "Les fichiers JPG et PNG sont maintenant envoyés tels quels, sans OCR : l'OCR "
 "ne fonctionne que sur des PDF."
 
-#: flypage/ui/processing_window.py:264
+#: flypage/ui/processing_window.py:272
 #, python-brace-format
 msgid "Not converted: copied as it is, without OCR (OCR only works on PDF)."
 msgid_plural ""
@@ -623,7 +641,7 @@ msgstr[1] ""
 "{n} images non converties : copiées telles quelles, sans OCR (l'OCR ne "
 "fonctionne que sur des PDF)."
 
-#: flypage/ui/processing_window.py:267
+#: flypage/ui/processing_window.py:275
 #, python-brace-format
 msgid "Not converted: moved as it is, without OCR (OCR only works on PDF)."
 msgid_plural ""
@@ -636,7 +654,7 @@ msgstr[1] ""
 "{n} images non converties : déplacées telles quelles, sans OCR (l'OCR ne "
 "fonctionne que sur des PDF)."
 
-#: flypage/ui/processing_window.py:274
+#: flypage/ui/processing_window.py:282
 #, python-brace-format
 msgid "Digital PDF: it already has text, so it is filed as it is, without OCR."
 msgid_plural ""
@@ -649,108 +667,108 @@ msgstr[1] ""
 "{n} PDF numériques : ils contiennent déjà du texte, ils sont donc classés "
 "tels quels, sans OCR."
 
-#: flypage/ui/processing_window.py:291
+#: flypage/ui/processing_window.py:299
 #, python-brace-format
 msgid "Delete {n} file?"
 msgid_plural "Delete {n} files?"
 msgstr[0] "Supprimer {n} fichier ?"
 msgstr[1] "Supprimer {n} fichiers ?"
 
-#: flypage/ui/processing_window.py:292
+#: flypage/ui/processing_window.py:300
 msgid "They are deleted from the scanner memory. This cannot be undone."
 msgstr ""
 "Ils sont supprimés de la mémoire du scanner. Cette action est irréversible."
 
-#: flypage/ui/processing_window.py:294
+#: flypage/ui/processing_window.py:302
 msgid "They are deleted from the disk. This cannot be undone."
 msgstr "Ils sont supprimés du disque. Cette action est irréversible."
 
-#: flypage/ui/processing_window.py:297
+#: flypage/ui/processing_window.py:305
 msgid "_Delete"
 msgstr "_Supprimer"
 
-#: flypage/ui/processing_window.py:320 flypage/ui/processing_window.py:334
+#: flypage/ui/processing_window.py:328 flypage/ui/processing_window.py:342
 msgid "Select files first, or drag them onto a folder."
 msgstr "Sélectionnez d'abord des fichiers, ou glissez-les sur un dossier."
 
-#: flypage/ui/processing_window.py:326
+#: flypage/ui/processing_window.py:334
 msgid "OCR cannot start"
 msgstr "L'OCR ne peut pas démarrer"
 
-#: flypage/ui/processing_window.py:336
+#: flypage/ui/processing_window.py:344
 msgid "Send to Folder"
 msgstr "Envoyer vers un dossier"
 
-#: flypage/ui/processing_window.py:336
+#: flypage/ui/processing_window.py:344
 msgid "_Send Here"
 msgstr "_Envoyer ici"
 
-#: flypage/ui/processing_window.py:373
+#: flypage/ui/processing_window.py:381
 msgid "Drag files onto a folder to start"
 msgstr "Glissez des fichiers sur un dossier pour commencer"
 
-#: flypage/ui/processing_window.py:376
+#: flypage/ui/processing_window.py:384
 #, python-brace-format
 msgid "{done} / {total} pages"
 msgstr "{done} / {total} pages"
 
-#: flypage/ui/processing_window.py:386
+#: flypage/ui/processing_window.py:394
 #, python-brace-format
 msgid "{name}: failed"
 msgstr "{name} : échec"
 
-#: flypage/ui/processing_window.py:395
+#: flypage/ui/processing_window.py:403
 msgid "Creating searchable PDFs…"
 msgstr "Création des PDF interrogeables…"
 
-#: flypage/ui/processing_window.py:397
+#: flypage/ui/processing_window.py:405
 #, python-brace-format
 msgid "{n} file failed — send it again or delete it"
 msgid_plural "{n} files failed — send them again or delete them"
 msgstr[0] "{n} fichier en échec — renvoyez-le ou supprimez-le"
 msgstr[1] "{n} fichiers en échec — renvoyez-les ou supprimez-les"
 
-#: flypage/ui/processing_window.py:400
+#: flypage/ui/processing_window.py:408
 #, python-brace-format
 msgid "{n} file from {source} — drag it onto a folder"
 msgid_plural "{n} files from {source} — drag them onto a folder"
 msgstr[0] "{n} fichier de {source} — glissez-le sur un dossier"
 msgstr[1] "{n} fichiers de {source} — glissez-les sur un dossier"
 
-#: flypage/ui/processing_window.py:416
+#: flypage/ui/processing_window.py:424
 #, python-brace-format
 msgid "{n} in {folder}"
 msgid_plural "{n} in {folder}"
 msgstr[0] "{n} dans {folder}"
 msgstr[1] "{n} dans {folder}"
 
-#: flypage/ui/processing_window.py:458
+#: flypage/ui/processing_window.py:466
 #, python-brace-format
 msgid "This window closes in {s} second."
 msgid_plural "This window closes in {s} seconds."
 msgstr[0] "Cette fenêtre se ferme dans {s} seconde."
 msgstr[1] "Cette fenêtre se ferme dans {s} secondes."
 
-#: flypage/ui/processing_window.py:475
+#: flypage/ui/processing_window.py:483
 msgid "Stop OCR?"
 msgstr "Arrêter l'OCR ?"
 
-#: flypage/ui/processing_window.py:476
+#: flypage/ui/processing_window.py:484
 msgid ""
 "The files being processed stay where they are. PDFs already created are kept."
 msgstr ""
 "Les fichiers en cours de traitement restent où ils sont. Les PDF déjà créés "
 "sont conservés."
 
-#: flypage/ui/processing_window.py:478
+#: flypage/ui/processing_window.py:486
 msgid "_Continue"
 msgstr "_Continuer"
 
-#: flypage/ui/processing_window.py:479
+#: flypage/ui/processing_window.py:487
 msgid "_Stop and Close"
 msgstr "_Arrêter et fermer"
 
-#: flypage/ui/processing_window.py:503
+#: flypage/ui/processing_window.py:511
 msgid "_OK"
 msgstr "_OK"
 
@@ -796,16 +814,16 @@ msgstr "Monter"
 msgid "Move down"
 msgstr "Descendre"
 
-#: flypage/ui/settings_window.py:151 flypage/ui/settings_window.py:378
+#: flypage/ui/settings_window.py:151 flypage/ui/settings_window.py:380
 msgid "Remove"
 msgstr "Retirer"
 
-#: flypage/ui/settings_window.py:190 flypage/ui/settings_window.py:407
+#: flypage/ui/settings_window.py:190 flypage/ui/settings_window.py:409
 #, python-brace-format
 msgid "“{name}” removed"
 msgstr "« {name} » retiré"
 
-#: flypage/ui/settings_window.py:190 flypage/ui/settings_window.py:407
+#: flypage/ui/settings_window.py:190 flypage/ui/settings_window.py:409
 msgid "_Undo"
 msgstr "_Annuler"
 
@@ -937,27 +955,31 @@ msgstr "toute la mémoire"
 msgid "deleted after import"
 msgstr "supprimés après l'import"
 
-#: flypage/ui/settings_window.py:382
+#: flypage/ui/settings_window.py:377
+msgid "ejected"
+msgstr "éjecté"
+
+#: flypage/ui/settings_window.py:384
 msgid "No scanner configured"
 msgstr "Aucun scanner configuré"
 
-#: flypage/ui/settings_window.py:425
+#: flypage/ui/settings_window.py:427
 msgid "Interface"
 msgstr "Interface"
 
-#: flypage/ui/settings_window.py:426
+#: flypage/ui/settings_window.py:428
 msgid "Language"
 msgstr "Langue"
 
-#: flypage/ui/settings_window.py:426
+#: flypage/ui/settings_window.py:428
 msgid "Applies the next time Flypage starts."
 msgstr "S'applique au prochain démarrage de Flypage."
 
-#: flypage/ui/settings_window.py:427
+#: flypage/ui/settings_window.py:429
 msgid "System default"
 msgstr "Langue du système"
 
-#: flypage/ui/settings_window.py:428
+#: flypage/ui/settings_window.py:430
 msgid "Interface language"
 msgstr "Langue de l'interface"
 
@@ -1030,15 +1052,15 @@ msgstr "Insérer {code} (par ex. « {example} »)"
 msgid "Invalid template"
 msgstr "Modèle invalide"
 
-#: flypage/ui/thumbnail_grid.py:114
+#: flypage/ui/thumbnail_grid.py:115
 #, python-brace-format
 msgid "{percent} %"
 msgstr "{percent} %"
 
-#: flypage/ui/thumbnail_grid.py:153
+#: flypage/ui/thumbnail_grid.py:155
 msgid "Waiting"
 msgstr "En attente"
 
-#: flypage/ui/thumbnail_grid.py:329
+#: flypage/ui/thumbnail_grid.py:331
 msgid "Delete"
 msgstr "Supprimer"

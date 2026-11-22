@@ -19,6 +19,7 @@ UDISKS = "org.freedesktop.UDisks2"
 UDISKS_PATH = "/org/freedesktop/UDisks2"
 BLOCK = "org.freedesktop.UDisks2.Block"
 FILESYSTEM = "org.freedesktop.UDisks2.Filesystem"
+DRIVE = "org.freedesktop.UDisks2.Drive"
 
 
 @dataclass
@@ -176,3 +177,50 @@ class UDisksWatcher(GObject.Object):
                 callback(points[0], None) if points else callback(None, err.message)
 
         fs.call("Mount", GLib.Variant("(a{sv})", ({},)), Gio.DBusCallFlags.NONE, 30_000, None, done)
+
+    def eject(self, object_path: str, callback: Callable[[str | None], None]) -> None:
+        """Unmount the disk, then power off its drive, as *Safely Remove* does; ``callback(error)``.
+
+        ``error`` is None once done, or when the disk is already gone.
+        """
+        obj = self.manager.get_object(object_path) if self.manager else None
+        fs = obj.get_interface(FILESYSTEM) if obj is not None else None
+        if fs is None:
+            callback(None)
+            return
+        options = GLib.Variant("(a{sv})", ({},))
+
+        def unmounted(proxy, result) -> None:
+            try:
+                proxy.call_finish(result)
+            except GLib.Error as err:
+                if self.current_mount_points(object_path):  # still mounted: busy, refused…
+                    callback(err.message)
+                    return
+            self._power_off(obj, callback)
+
+        if mount_points(obj):
+            fs.call("Unmount", options, Gio.DBusCallFlags.NONE, 30_000, None, unmounted)
+        else:
+            self._power_off(obj, callback)
+
+    def _power_off(self, obj: Gio.DBusObject, callback: Callable[[str | None], None]) -> None:
+        block = obj.get_interface(BLOCK)
+        drive_path = block.get_cached_property("Drive").unpack() if block is not None else "/"
+        drive_obj = self.manager.get_object(drive_path) if drive_path != "/" else None
+        drive = drive_obj.get_interface(DRIVE) if drive_obj is not None else None
+        if drive is None:
+            callback(None)  # unmounted: safe to unplug
+            return
+        can = drive.get_cached_property("CanPowerOff")
+        method = "PowerOff" if can is not None and can.unpack() else "Eject"
+
+        def done(proxy, result) -> None:
+            try:
+                proxy.call_finish(result)
+            except GLib.Error as err:
+                # Unmounted already, so unplugging is safe even if the drive stays powered.
+                log.info("%s of %s failed: %s", method, obj.get_object_path(), err.message)
+            callback(None)
+
+        drive.call(method, GLib.Variant("(a{sv})", ({},)), Gio.DBusCallFlags.NONE, 30_000, None, done)

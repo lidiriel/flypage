@@ -10,7 +10,7 @@ from test_session import wait_until
 
 from flypage import importer, pending
 from flypage.config import Config, Destination, Scanner
-from flypage.device import BLOCK, FILESYSTEM, UsbDisk, usb_disk
+from flypage.device import BLOCK, DRIVE, FILESYSTEM, UDisksWatcher, UsbDisk, usb_disk
 from flypage.importer import ImportFailed, ScannerFiles, import_files
 from flypage.scanners import match
 from flypage.session import Session
@@ -92,6 +92,80 @@ def test_non_usb_or_unformatted_disks_are_ignored():
     assert usb_disk(FakeObject(with_fs), properties=lambda d: {"ID_BUS": "ata", "ID_VENDOR_ID": "1"}) is None
     no_fs = {BLOCK: FakeIface(Device=ay("/dev/sdb"))}
     assert usb_disk(FakeObject(no_fs), properties=lambda d: {"ID_BUS": "usb", "ID_VENDOR_ID": "1"}) is None
+
+
+# --- eject ---------------------------------------------------------------------
+
+
+class FakeCallIface(FakeIface):
+    """Records D-Bus calls; ``fail`` maps a method to the error it raises; ``after`` runs on success."""
+
+    def __init__(self, calls, fail=None, after=None, **props):
+        super().__init__(**props)
+        self.calls, self.fail, self.after = calls, fail or {}, after or {}
+
+    def call(self, method, _params, _flags, _timeout, _cancellable, callback):
+        self.calls.append(method)
+        self._method = method
+        callback(self, None)
+
+    def call_finish(self, _result):
+        if self._method in self.fail:
+            raise GLib.Error(self.fail[self._method])
+        self.after.get(self._method, lambda: None)()
+
+
+class FakeManager:
+    def __init__(self, objects):
+        self.objects = objects
+
+    def get_object(self, path):
+        return self.objects.get(path)
+
+
+def ejectable(mounted=True, can_power_off=True, fail=None):
+    calls = []
+    points = [b"/media/me/SCAN\0"] if mounted else []
+    fs = FakeCallIface(calls, fail, MountPoints=GLib.Variant("aay", points))
+    fs.after["Unmount"] = lambda: fs.props.update(MountPoints=GLib.Variant("aay", []))
+    disk_path, drive_path = "/udisks/block_devices/sdb1", "/udisks/drives/scanner"
+    drive = FakeCallIface(calls, fail, CanPowerOff=GLib.Variant("b", can_power_off))
+    watcher = UDisksWatcher()
+    watcher.manager = FakeManager({
+        disk_path: FakeObject({BLOCK: FakeIface(Drive=GLib.Variant("o", drive_path)), FILESYSTEM: fs}),
+        drive_path: FakeObject({DRIVE: drive}),
+    })  # fmt: skip
+    errors = []
+    watcher.eject(disk_path, errors.append)
+    return calls, errors
+
+
+def test_eject_unmounts_then_powers_off():
+    assert ejectable() == (["Unmount", "PowerOff"], [None])
+
+
+def test_eject_of_an_unmounted_disk_only_powers_off():
+    assert ejectable(mounted=False) == (["PowerOff"], [None])
+
+
+def test_eject_uses_eject_when_power_off_is_not_possible():
+    assert ejectable(can_power_off=False) == (["Unmount", "Eject"], [None])
+
+
+def test_a_busy_disk_is_not_ejected():
+    assert ejectable(fail={"Unmount": "target is busy"}) == (["Unmount"], ["target is busy"])
+
+
+def test_a_failed_power_off_after_unmount_is_not_an_error():
+    assert ejectable(fail={"PowerOff": "not authorized"}) == (["Unmount", "PowerOff"], [None])
+
+
+def test_eject_of_a_gone_disk_does_nothing():
+    watcher = UDisksWatcher()
+    watcher.manager = FakeManager({})
+    errors = []
+    watcher.eject("/udisks/block_devices/sdb1", errors.append)
+    assert errors == [None]
 
 
 # --- import --------------------------------------------------------------------

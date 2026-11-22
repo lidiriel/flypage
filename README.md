@@ -24,6 +24,11 @@ into folders and running OCR on them by hand takes time. With Flypage:
 4. In *Move* mode (the default), once a PDF is written its original is
    deleted from the scanner's memory; in *Copy* mode it stays there. A
    notification lists the files made, with buttons that open their folders.
+5. When the window closes, the scanner is ejected (unmounted and powered
+   off, like *Safely Remove* in the file manager): the notification says
+   when it can be unplugged, or why it could not be ejected (e.g. a file
+   on it is still open in another program). This can be turned off for
+   each scanner in Settings.
 
 The toolbar at the bottom of the window sets what the next drop does:
 *Images to PDF* (off: JPG and PNG files are filed as they are, without

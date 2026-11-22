@@ -151,8 +151,10 @@ def test_scanner_dialog():
     assert not dialog.save_button.get_sensitive()
     dialog.model_row.set_text("")
     dialog.source_row.set_text("/DCIM/")
+    assert dialog.eject_row.get_active()  # on by default
+    dialog.eject_row.set_active(False)
     dialog._save(None)
-    assert results == [Scanner(name="Book", vendor_id="07b4", source_dir="DCIM")]
+    assert results == [Scanner(name="Book", vendor_id="07b4", source_dir="DCIM", eject_when_closed=False)]
 
 
 def test_scanner_dialog_uses_a_detected_disk(tmp_path):

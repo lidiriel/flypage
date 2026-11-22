@@ -248,6 +248,12 @@ class ScannerDialog(FormDialog):
             active=self.scanner.delete_after_import,
         )
         files.add(self.delete_row)
+        self.eject_row = Adw.SwitchRow(
+            title=_("Eject the scanner when the window closes"),
+            subtitle=_("It can then be unplugged safely"),
+            active=self.scanner.eject_when_closed,
+        )
+        files.add(self.eject_row)
         self.page.add(files)
         self.check()
 
@@ -313,4 +319,5 @@ class ScannerDialog(FormDialog):
         s.serial = self.serial_row.get_text().strip()
         s.source_dir = self.source_row.get_text().strip().strip("/")
         s.delete_after_import = self.delete_row.get_active()
+        s.eject_when_closed = self.eject_row.get_active()
         return s

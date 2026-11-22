@@ -39,7 +39,8 @@ def test_missing_file_gives_defaults():
 def test_round_trip():
     cfg = Config(
         ui_language="fr",
-        scanners=[Scanner(name="Mine", vendor_id="07b4", model_id="0281", delete_after_import=False)],
+        scanners=[Scanner(name="Mine", vendor_id="07b4", model_id="0281", delete_after_import=False,
+                         eject_when_closed=False)],
         destinations=[
             Destination(path="~/Invoices", icon="folder-documents-symbolic"),
             Destination(path="/srv/taxes", template="%Y_tax"),
