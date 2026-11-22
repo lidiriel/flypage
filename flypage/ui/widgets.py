@@ -37,6 +37,23 @@ ICON_CHOICES = (
 )
 
 
+SMALL_SCREEN_HEIGHT = 900  # below this (e.g. 1366×768 laptops) the processing window is compact
+
+
+def screen_size() -> tuple[int, int]:
+    """Size in pixels of the (first) monitor; a large default when unknown."""
+    display = Gdk.Display.get_default()
+    monitors = display.get_monitors() if display else None
+    if not monitors or monitors.get_n_items() == 0:
+        return 1920, 1080
+    geometry = monitors.get_item(0).get_geometry()
+    return geometry.width, geometry.height
+
+
+def small_screen() -> bool:
+    return screen_size()[1] < SMALL_SCREEN_HEIGHT
+
+
 def available_icons() -> list[str]:
     theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
     return [name for name in ICON_CHOICES if theme.has_icon(name)]

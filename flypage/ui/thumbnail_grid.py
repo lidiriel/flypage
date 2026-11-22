@@ -15,12 +15,13 @@ from flypage import thumbnails
 from flypage.i18n import _, ngettext
 from flypage.model import FAILED, QUEUED, ImportedFile
 from flypage.session import Session
-from flypage.ui.widgets import set_icon
+from flypage.ui.widgets import set_icon, small_screen
 
 log = logging.getLogger(__name__)
 
 DRAG_PREFIX = "flypage-files:"  # drag content: "flypage-files:3,4,7"
 CELL_SIZE = 168
+CELL_SIZE_SMALL = 120  # small screens
 
 
 DRAG_ICON_GAP = 12  # pixels between the pointer and the drag icon
@@ -139,7 +140,8 @@ class ThumbnailCell(Gtk.Box):
         self._handlers: list[int] = []
 
         self.picture = Gtk.Picture(content_fit=Gtk.ContentFit.CONTAIN, can_shrink=True)
-        self.picture.set_size_request(CELL_SIZE, CELL_SIZE)
+        size = CELL_SIZE_SMALL if small_screen() else CELL_SIZE
+        self.picture.set_size_request(size, size)
         overlay = Gtk.Overlay(child=self.picture)
         self.spinner = Adw.Spinner(halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, width_request=32, height_request=32)
         self.dest_badge = Gtk.Image(halign=Gtk.Align.END, valign=Gtk.Align.START, pixel_size=24, css_classes=["osd", "badge"])
@@ -155,7 +157,7 @@ class ThumbnailCell(Gtk.Box):
         for widget in (self.spinner, self.ring, self.waiting, self.dest_badge, self.pages_badge, self.error_badge):
             overlay.add_overlay(widget)
         self.append(overlay)
-        self.label = Gtk.Label(ellipsize=Pango.EllipsizeMode.MIDDLE, max_width_chars=18, css_classes=["caption"])
+        self.label = Gtk.Label(ellipsize=Pango.EllipsizeMode.MIDDLE, max_width_chars=14 if small_screen() else 18, css_classes=["caption"])
         self.append(self.label)
 
         drag = Gtk.DragSource(actions=Gdk.DragAction.MOVE)

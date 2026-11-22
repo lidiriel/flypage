@@ -46,3 +46,15 @@
 .preview-picture {
   background-color: white;
 }
+
+/* Small screens (e.g. 1366×768): tighter cells and destination buttons */
+
+.compact .thumb-grid > child {
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.compact .dest-button {
+  min-width: 80px;
+  padding: 4px 8px;
+}

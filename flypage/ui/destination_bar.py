@@ -7,13 +7,14 @@ from gi.repository import Gdk, GLib, GObject, Gtk, Pango
 from flypage.config import Config, Destination
 from flypage.i18n import _
 from flypage.ui.thumbnail_grid import parse_payload
-from flypage.ui.widgets import icon_image
+from flypage.ui.widgets import icon_image, small_screen
 
 
 class DestinationButton(Gtk.Button):
     def __init__(self, dest: Destination | None, label: str, icon: str, max_chars: int = 12) -> None:
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.append(icon_image(icon, 48))
+        small = small_screen()
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2 if small else 4)
+        box.append(icon_image(icon, 32 if small else 48))
         box.append(Gtk.Label(label=label, ellipsize=Pango.EllipsizeMode.END, max_width_chars=max_chars))
         super().__init__(child=box, css_classes=["flat", "dest-button"])
         self.dest = dest
@@ -37,7 +38,8 @@ class DestinationBar(Gtk.ScrolledWindow):
 
     def __init__(self, cfg: Config) -> None:
         super().__init__(vscrollbar_policy=Gtk.PolicyType.NEVER, hscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
-        box = Gtk.Box(spacing=6, margin_start=12, margin_end=12, margin_top=6, margin_bottom=6)
+        margin = 3 if small_screen() else 6
+        box = Gtk.Box(spacing=6, margin_start=12, margin_end=12, margin_top=margin, margin_bottom=margin)
         self.buttons = [DestinationButton(d, d.name, d.display_icon()) for d in cfg.destinations]
         for button in self.buttons:
             button.set_tooltip_text(

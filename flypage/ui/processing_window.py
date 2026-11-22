@@ -18,7 +18,7 @@ from flypage.session import Session
 from flypage.ui.activation import bring_to_front_when_shown
 from flypage.ui.destination_bar import DestinationBar
 from flypage.ui.thumbnail_grid import ThumbnailGrid
-from flypage.ui.widgets import contract_home
+from flypage.ui.widgets import contract_home, screen_size, small_screen
 
 log = logging.getLogger(__name__)
 
@@ -64,8 +64,9 @@ class PreviewPane(Gtk.Stack):
         self.multi = Adw.StatusPage(icon_name="edit-select-all-symbolic")
         self.add_named(self.multi, "multi")
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_top=12, margin_bottom=12,
-                      margin_start=12, margin_end=12)  # fmt: skip
+        m = 6 if small_screen() else 12
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_top=m, margin_bottom=m,
+                      margin_start=m, margin_end=m)  # fmt: skip
         self.picture = Gtk.Picture(content_fit=Gtk.ContentFit.CONTAIN, vexpand=True, css_classes=["preview-picture"])
         double = Gtk.GestureClick()
         double.connect("pressed", lambda _g, n, _x, _y: n == 2 and window.toggle_full_preview())
@@ -124,8 +125,14 @@ class PreviewPane(Gtk.Stack):
 
 class ProcessingWindow(Adw.ApplicationWindow):
     def __init__(self, session: Session, source: str, **kwargs) -> None:
-        super().__init__(title=_("Flypage"), default_width=1100, default_height=780, **kwargs)
+        # Fit the screen, leaving room for panels and the title bar (1366×768 → 1100×648).
+        width, height = screen_size()
+        super().__init__(
+            title=_("Flypage"), default_width=min(1100, width - 60), default_height=min(780, height - 120), **kwargs
+        )
         load_css()
+        if small_screen():
+            self.add_css_class("compact")
         self.session = session
         self.cfg = session.cfg
         self.source = source
@@ -150,7 +157,7 @@ class ProcessingWindow(Adw.ApplicationWindow):
         self.preview = PreviewPane(self)
         self.paned = Gtk.Paned(
             start_child=self.grid, end_child=self.preview, shrink_start_child=False, shrink_end_child=False,
-            resize_start_child=True, resize_end_child=True, position=620, vexpand=True,
+            resize_start_child=True, resize_end_child=True, position=560 if small_screen() else 620, vexpand=True,
         )  # fmt: skip
 
         self.destinations = DestinationBar(self.cfg)
@@ -220,7 +227,8 @@ class ProcessingWindow(Adw.ApplicationWindow):
         close = Gtk.Button(label=_("_Close"), use_underline=True, tooltip_text=_("Close the window (running OCR stops)"))
         close.connect("clicked", lambda _b: self.close())
 
-        bar = Gtk.Box(spacing=12, margin_start=12, margin_end=12, margin_top=6, margin_bottom=6)
+        margin = 3 if small_screen() else 6
+        bar = Gtk.Box(spacing=12, margin_start=12, margin_end=12, margin_top=margin, margin_bottom=margin)
         for widget in (convert, self.transfer, self.language, self.progress, close):
             bar.append(widget)
         return bar
